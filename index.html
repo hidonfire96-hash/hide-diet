@@ -1,0 +1,890 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HideDiet">
+<meta name="theme-color" content="#1D9E75">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Hide's Diet</title>
+<style>
+  :root {
+    --teal: #1D9E75;
+    --teal-lt: #E1F5EE;
+    --teal-dk: #0F6E56;
+    --amber: #EF9F27;
+    --amber-lt: #FAEEDA;
+    --amber-dk: #854F0B;
+    --coral: #D85A30;
+    --coral-lt: #FAECE7;
+    --blue: #378ADD;
+    --blue-lt: #E6F1FB;
+    --blue-dk: #185FA5;
+    --gray: #888780;
+    --gray-lt: #F1EFE8;
+    --bg: #f5f4f0;
+    --surface: #ffffff;
+    --surface2: #f0efe9;
+    --text: #1a1918;
+    --text2: #5f5e5a;
+    --text3: #999891;
+    --border: rgba(0,0,0,0.10);
+    --border2: rgba(0,0,0,0.18);
+    --radius: 14px;
+    --radius-sm: 8px;
+    --safe-top: env(safe-area-inset-top, 44px);
+    --safe-bot: env(safe-area-inset-bottom, 20px);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --bg: #111110;
+      --surface: #1c1c1a;
+      --surface2: #252422;
+      --text: #f0efe9;
+      --text2: #999891;
+      --text3: #5f5e5a;
+      --border: rgba(255,255,255,0.10);
+      --border2: rgba(255,255,255,0.18);
+      --teal-lt: #0a3d2b;
+      --amber-lt: #3a2a08;
+      --coral-lt: #3d1a0c;
+      --blue-lt: #0c2540;
+      --gray-lt: #222220;
+    }
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { height: 100%; overflow: hidden; background: var(--bg); font-family: -apple-system, 'Hiragino Sans', sans-serif; }
+
+  .app-shell {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    max-width: 430px;
+    margin: 0 auto;
+  }
+
+  .status-bar-spacer { height: var(--safe-top); background: var(--surface); flex-shrink: 0; }
+
+  .top-bar {
+    background: var(--surface);
+    border-bottom: 0.5px solid var(--border);
+    padding: 12px 16px 10px;
+    flex-shrink: 0;
+  }
+  .top-bar h1 { font-size: 20px; font-weight: 600; color: var(--text); letter-spacing: -0.3px; }
+  .top-bar p { font-size: 12px; color: var(--text3); margin-top: 1px; }
+
+  .scroll-area {
+    flex: 1;
+    overflow-y: auto;
+    -webkit-overflow-scrolling: touch;
+    padding: 12px 14px;
+    padding-bottom: calc(80px + var(--safe-bot));
+    background: var(--bg);
+  }
+
+  .tab-bar {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 430px;
+    background: var(--surface);
+    border-top: 0.5px solid var(--border);
+    display: flex;
+    padding-bottom: var(--safe-bot);
+    z-index: 100;
+  }
+  .tab-btn {
+    flex: 1;
+    padding: 8px 4px 6px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 3px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    color: var(--text3);
+    transition: color 0.15s;
+  }
+  .tab-btn.active { color: var(--teal); }
+  .tab-icon { font-size: 22px; line-height: 1; }
+  .tab-label { font-size: 10px; font-weight: 500; }
+
+  .screen { display: none; }
+  .screen.active { display: block; }
+
+  .card {
+    background: var(--surface);
+    border-radius: var(--radius);
+    border: 0.5px solid var(--border);
+    padding: 14px 16px;
+    margin-bottom: 10px;
+  }
+  .card-title {
+    font-size: 11px;
+    font-weight: 600;
+    color: var(--text3);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 12px;
+  }
+
+  .stat-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-bottom: 10px; }
+  .stat-card {
+    background: var(--surface);
+    border: 0.5px solid var(--border);
+    border-radius: var(--radius);
+    padding: 12px 14px;
+  }
+  .stat-label { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .stat-value { font-size: 28px; font-weight: 600; color: var(--text); line-height: 1; }
+  .stat-unit { font-size: 12px; color: var(--text2); }
+  .stat-sub { font-size: 11px; color: var(--text3); margin-top: 3px; }
+
+  .progress-bar { height: 5px; background: var(--surface2); border-radius: 3px; overflow: hidden; margin: 6px 0 3px; }
+  .progress-fill { height: 100%; border-radius: 3px; transition: width 0.5s cubic-bezier(0.4,0,0.2,1); }
+
+  .row { display: flex; justify-content: space-between; align-items: center; padding: 5px 0; }
+  .row-label { font-size: 14px; color: var(--text2); }
+  .row-val { font-size: 14px; font-weight: 500; color: var(--text); }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px; font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 20px;
+  }
+  .b-teal { background: var(--teal-lt); color: var(--teal-dk); }
+  .b-amber { background: var(--amber-lt); color: var(--amber-dk); }
+  .b-blue { background: var(--blue-lt); color: var(--blue-dk); }
+
+  .tip-box {
+    background: var(--teal-lt);
+    border-radius: var(--radius-sm);
+    padding: 12px 14px;
+    margin-bottom: 10px;
+  }
+  .tip-title { font-size: 11px; font-weight: 600; color: var(--teal-dk); margin-bottom: 4px; }
+  .tip-text { font-size: 13px; color: var(--teal-dk); line-height: 1.6; }
+
+  .bmi-bar-wrap { margin: 8px 0 6px; }
+  .bmi-bar {
+    height: 10px; border-radius: 5px; overflow: hidden;
+    background: linear-gradient(to right, #B5D4F4 0%, #C0DD97 20%, #FAC775 35%, #F0997B 55%, #ED93B1 100%);
+    position: relative;
+  }
+  .bmi-marker {
+    position: absolute; top: -4px;
+    width: 4px; height: 18px;
+    background: var(--text); border-radius: 2px;
+    transform: translateX(-50%);
+    transition: left 0.4s;
+  }
+  .bmi-labels { display: flex; justify-content: space-between; font-size: 10px; color: var(--text3); margin-top: 3px; }
+
+  .macro-row { display: flex; gap: 8px; margin-bottom: 12px; }
+  .macro-card {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+  }
+  .macro-name { font-size: 11px; color: var(--text3); margin-bottom: 4px; }
+  .macro-val { font-size: 18px; font-weight: 600; color: var(--text); }
+  .macro-unit { font-size: 10px; color: var(--text3); }
+  .macro-bar-wrap { margin-top: 5px; }
+
+  .food-list { list-style: none; }
+  .food-item {
+    display: flex; align-items: center; gap: 10px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .food-item:last-child { border-bottom: none; }
+  .food-dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
+  .food-name { flex: 1; font-size: 14px; color: var(--text); }
+  .food-kcal { font-size: 13px; color: var(--text3); }
+  .food-del { font-size: 18px; color: var(--text3); cursor: pointer; padding: 0 4px; }
+
+  .select-wrap {
+    position: relative;
+    margin-bottom: 8px;
+  }
+  .food-select {
+    width: 100%;
+    font-size: 14px;
+    padding: 10px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    appearance: none;
+    -webkit-appearance: none;
+  }
+  .add-row { display: flex; gap: 8px; }
+  .qty-input {
+    width: 70px;
+    font-size: 14px;
+    padding: 10px 8px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    text-align: center;
+  }
+  .btn {
+    flex: 1;
+    font-size: 14px; font-weight: 500;
+    padding: 10px 16px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    cursor: pointer;
+    transition: background 0.15s;
+    white-space: nowrap;
+  }
+  .btn:active { background: var(--border2); transform: scale(0.98); }
+  .btn-primary {
+    background: var(--teal);
+    color: #fff;
+    border-color: var(--teal);
+  }
+  .btn-primary:active { background: var(--teal-dk); }
+
+  .water-btns { display: flex; gap: 6px; margin-top: 8px; }
+  .water-btns button { flex: 1; }
+
+  .jexer-week { list-style: none; }
+  .jexer-day {
+    display: flex; align-items: flex-start; gap: 12px;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .jexer-day:last-child { border-bottom: none; }
+  .day-label { font-size: 13px; font-weight: 600; min-width: 24px; color: var(--text2); padding-top: 2px; }
+  .workout-tags { display: flex; flex-wrap: wrap; gap: 5px; }
+  .wtag {
+    font-size: 12px; font-weight: 500;
+    padding: 3px 10px;
+    border-radius: 20px;
+    background: var(--teal-lt);
+    color: var(--teal-dk);
+  }
+  .wtag-rest { background: var(--surface2); color: var(--text3); font-style: italic; font-weight: 400; }
+
+  .guide-item {
+    display: flex; gap: 12px; align-items: flex-start;
+    padding: 10px 0;
+    border-bottom: 0.5px solid var(--border);
+  }
+  .guide-item:last-child { border-bottom: none; }
+  .guide-num {
+    width: 26px; height: 26px; border-radius: 50%;
+    background: var(--teal-lt);
+    color: var(--teal-dk);
+    font-size: 13px; font-weight: 600;
+    display: flex; align-items: center; justify-content: center;
+    flex-shrink: 0;
+  }
+  .guide-text { font-size: 13px; color: var(--text2); line-height: 1.6; padding-top: 3px; }
+
+  .weight-chart-wrap { height: 130px; margin: 8px 0; }
+  .weight-chart-wrap svg { width: 100%; height: 100%; }
+
+  .log-btns { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; }
+
+  .weight-input-row { display: flex; gap: 8px; align-items: center; margin-bottom: 12px; }
+  .weight-num {
+    flex: 1;
+    font-size: 22px; font-weight: 600;
+    padding: 8px 12px;
+    border: 0.5px solid var(--border2);
+    border-radius: var(--radius-sm);
+    background: var(--surface2);
+    color: var(--text);
+    text-align: center;
+  }
+
+  .goal-milestones { display: flex; gap: 6px; margin: 10px 0; }
+  .milestone {
+    flex: 1;
+    background: var(--surface2);
+    border-radius: var(--radius-sm);
+    padding: 10px;
+    text-align: center;
+    border: 0.5px solid var(--border);
+  }
+  .ms-kg { font-size: 18px; font-weight: 600; color: var(--text); }
+  .ms-label { font-size: 11px; color: var(--text3); margin-top: 2px; }
+  .ms-badge { font-size: 11px; font-weight: 600; margin-top: 4px; }
+
+  .empty-state { font-size: 13px; color: var(--text3); padding: 12px 0; text-align: center; }
+
+  .workout-logged {
+    background: var(--teal-lt);
+    border-radius: var(--radius-sm);
+    padding: 8px 12px;
+    margin-bottom: 10px;
+    font-size: 13px;
+    color: var(--teal-dk);
+    display: none;
+  }
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="status-bar-spacer"></div>
+
+  <div class="top-bar">
+    <h1>Hide's Diet</h1>
+    <p id="top-date">Jexer国分寺 連携プラン</p>
+  </div>
+
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- DASHBOARD -->
+    <div id="screen-dash" class="screen active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">現在の体重</div>
+          <div class="stat-value" id="dash-weight">90.0</div>
+          <div class="stat-unit">kg</div>
+          <div class="stat-sub">目標 75 kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">今日のカロリー</div>
+          <div class="stat-value" id="dash-kcal">0</div>
+          <div class="stat-unit">kcal</div>
+          <div class="stat-sub" id="dash-remain">目標 1,850 kcal</div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">BMI</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+          <span style="font-size:32px;font-weight:600;color:var(--text)" id="bmi-val">30.8</span>
+          <span class="badge b-amber" id="bmi-badge">肥満度Ⅰ</span>
+        </div>
+        <div class="bmi-bar-wrap">
+          <div class="bmi-bar"><div class="bmi-marker" id="bmi-marker" style="left:56%"></div></div>
+          <div class="bmi-labels"><span>低体重</span><span>標準</span><span>過体重</span><span>肥満</span></div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px;">目標 BMI 25.6 → 体重 <strong>75 kg</strong></div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">カロリー目標</div>
+        <div class="row"><span class="row-label">基礎代謝 (BMR)</span><span class="row-val">1,993 kcal</span></div>
+        <div class="row"><span class="row-label">消費カロリー (TDEE)</span><span class="row-val">2,550 kcal</span></div>
+        <div class="row"><span class="row-label">目標摂取カロリー</span><span class="row-val" style="color:var(--teal);font-size:16px;">1,850 kcal</span></div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="dash-kbar" style="width:0%;background:var(--teal)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);">
+          <span id="dash-kpct">0%</span>
+          <span>週 0.5〜0.7 kg 減ペース</span>
+        </div>
+      </div>
+
+      <div class="tip-box">
+        <div class="tip-title">今日のアドバイス</div>
+        <div class="tip-text" id="dash-tip">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- FOOD LOG -->
+    <div id="screen-food" class="screen">
+      <div class="card">
+        <div class="card-title">マクロ栄養素 — 今日</div>
+        <div class="macro-row">
+          <div class="macro-card">
+            <div class="macro-name">炭水化物</div>
+            <div class="macro-val"><span id="carb-g">0</span><span class="macro-unit">g</span></div>
+            <div class="macro-bar-wrap"><div class="progress-bar"><div class="progress-fill" id="carb-bar" style="width:0%;background:#EF9F27"></div></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標185g</div>
+          </div>
+          <div class="macro-card">
+            <div class="macro-name">タンパク質</div>
+            <div class="macro-val"><span id="prot-g">0</span><span class="macro-unit">g</span></div>
+            <div class="macro-bar-wrap"><div class="progress-bar"><div class="progress-fill" id="prot-bar" style="width:0%;background:var(--teal)"></div></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標135g</div>
+          </div>
+          <div class="macro-card">
+            <div class="macro-name">脂質</div>
+            <div class="macro-val"><span id="fat-g">0</span><span class="macro-unit">g</span></div>
+            <div class="macro-bar-wrap"><div class="progress-bar"><div class="progress-fill" id="fat-bar" style="width:0%;background:var(--coral)"></div></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標50g</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);text-align:center;">合計 <strong id="food-total-kcal">0</strong> kcal / 残り <strong id="food-remain">1,850</strong> kcal</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">食事ログ</div>
+        <ul class="food-list" id="food-list">
+          <li class="empty-state">まだ記録がありません</li>
+        </ul>
+        <div style="margin-top:10px;">
+          <div class="select-wrap">
+            <select class="food-select" id="food-select">
+              <option value="">食品を選択...</option>
+              <optgroup label="主食">
+                <option value="rice">白米1膳 — 260 kcal</option>
+                <option value="onigiri">おにぎり — 185 kcal</option>
+                <option value="soba">ざる蕎麦 — 320 kcal</option>
+                <option value="udon">うどん — 300 kcal</option>
+                <option value="bread">食パン1枚 — 160 kcal</option>
+              </optgroup>
+              <optgroup label="タンパク質">
+                <option value="chicken_breast">鶏むね肉100g — 165 kcal</option>
+                <option value="egg">卵1個 — 90 kcal</option>
+                <option value="tuna_sashimi">マグロ刺身5切 — 100 kcal</option>
+                <option value="tofu">木綿豆腐半丁 — 75 kcal</option>
+                <option value="natto">納豆1パック — 90 kcal</option>
+                <option value="protein_shake">プロテイン — 120 kcal</option>
+                <option value="salmon">サーモン100g — 200 kcal</option>
+              </optgroup>
+              <optgroup label="野菜・汁物">
+                <option value="salad">サラダ — 30 kcal</option>
+                <option value="miso_soup">味噌汁 — 40 kcal</option>
+                <option value="broccoli">ブロッコリー100g — 35 kcal</option>
+              </optgroup>
+              <optgroup label="その他">
+                <option value="beer">ビール350ml — 150 kcal</option>
+                <option value="coffee_black">コーヒーブラック — 5 kcal</option>
+                <option value="fruit">果物1個 — 80 kcal</option>
+                <option value="chips">スナック菓子 — 250 kcal</option>
+              </optgroup>
+            </select>
+          </div>
+          <div class="add-row">
+            <input type="number" class="qty-input" id="qty-input" value="1" min="0.5" max="5" step="0.5" placeholder="量">
+            <button class="btn btn-primary" onclick="addFood()">追加</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">水分摂取</div>
+        <div class="row">
+          <span class="row-label">今日の水分</span>
+          <span class="row-val"><span id="water-val">0</span> / 2.5 L</span>
+        </div>
+        <div class="progress-bar">
+          <div class="progress-fill" id="water-bar" style="width:0%;background:var(--blue)"></div>
+        </div>
+        <div class="water-btns">
+          <button class="btn" onclick="addWater(200)">+200ml</button>
+          <button class="btn" onclick="addWater(500)">+500ml</button>
+          <button class="btn" onclick="addWater(500);addWater(250)">+750ml</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- JEXER -->
+    <div id="screen-jexer" class="screen">
+      <div class="card">
+        <div class="card-title">Jexer国分寺 週間プラン</div>
+        <ul class="jexer-week">
+          <li class="jexer-day"><span class="day-label">月</span><div class="workout-tags"><span class="wtag">ウエイト上半身</span><span class="wtag">有酸素20分</span></div></li>
+          <li class="jexer-day"><span class="day-label">火</span><div class="workout-tags"><span class="wtag wtag-rest">休息</span></div></li>
+          <li class="jexer-day"><span class="day-label">水</span><div class="workout-tags"><span class="wtag">ウエイト下半身</span><span class="wtag">有酸素20分</span></div></li>
+          <li class="jexer-day"><span class="day-label">木</span><div class="workout-tags"><span class="wtag wtag-rest">休息</span></div></li>
+          <li class="jexer-day"><span class="day-label">金</span><div class="workout-tags"><span class="wtag">全身ウエイト</span><span class="wtag">HIIT 15分</span></div></li>
+          <li class="jexer-day"><span class="day-label">土</span><div class="workout-tags"><span class="wtag">有酸素40分</span></div></li>
+          <li class="jexer-day"><span class="day-label">日</span><div class="workout-tags"><span class="wtag wtag-rest">休息</span></div></li>
+        </ul>
+      </div>
+
+      <div class="card">
+        <div class="card-title">今日のトレーニング</div>
+        <div class="workout-logged" id="workout-logged"></div>
+        <div class="log-btns">
+          <button class="btn" onclick="logWorkout('ウエイト上半身', 300)">🏋️ 上半身</button>
+          <button class="btn" onclick="logWorkout('ウエイト下半身', 280)">🏋️ 下半身</button>
+          <button class="btn" onclick="logWorkout('全身ウエイト', 320)">💪 全身</button>
+          <button class="btn" onclick="logWorkout('有酸素 30分', 250)">🏃 有酸素</button>
+          <button class="btn" onclick="logWorkout('HIIT 15分', 360)">⚡ HIIT</button>
+          <button class="btn" onclick="logWorkout('ストレッチ', 80)">🧘 ストレッチ</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">48歳のトレーニング指針</div>
+        <div class="guide-item">
+          <div class="guide-num">1</div>
+          <div class="guide-text"><strong>筋トレ優先</strong> — 有酸素より先にウエイトを行い、成長ホルモン分泌を最大化</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">2</div>
+          <div class="guide-text"><strong>休息日必須</strong> — テストステロン低下を考慮し週3〜4回が最適。回復で筋肉は育つ</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">3</div>
+          <div class="guide-text"><strong>タンパク質 135g/日</strong> — 体重×1.5g。運動後30分以内にプロテイン摂取</div>
+        </div>
+        <div class="guide-item">
+          <div class="guide-num">4</div>
+          <div class="guide-text"><strong>睡眠 7〜8時間</strong> — 脂肪燃焼ホルモン（GH）の90%は睡眠中に分泌される</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div id="screen-progress" class="screen">
+      <div class="card">
+        <div class="card-title">体重を記録</div>
+        <div class="weight-input-row">
+          <input type="number" class="weight-num" id="weight-input" step="0.1" min="50" max="200" placeholder="kg">
+          <button class="btn btn-primary" style="width:80px" onclick="logWeight()">記録</button>
+        </div>
+        <div class="weight-chart-wrap">
+          <svg id="wchart" viewBox="0 0 340 120" preserveAspectRatio="none">
+            <line x1="0" y1="95" x2="340" y2="95" stroke="var(--border)" stroke-width="1"/>
+            <line x1="0" y1="60" x2="340" y2="60" stroke="var(--border)" stroke-width="1"/>
+            <line x1="0" y1="25" x2="340" y2="25" stroke="var(--border)" stroke-width="1"/>
+            <text x="4" y="98" font-size="9" fill="var(--text3)">80</text>
+            <text x="4" y="63" font-size="9" fill="var(--text3)">85</text>
+            <text x="4" y="28" font-size="9" fill="var(--text3)">90</text>
+            <line x1="18" y1="95" x2="340" y2="95" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="295" y="92" font-size="9" fill="var(--blue-dk)">目標80</text>
+            <path id="wchart-fill" d="" fill="var(--teal)" fill-opacity="0.08"/>
+            <polyline id="wchart-line" points="" fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <g id="wchart-dots"></g>
+          </svg>
+        </div>
+        <div style="font-size:12px;color:var(--text3);text-align:center;" id="chart-hint">体重を記録するとグラフが表示されます</div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">目標マイルストーン</div>
+        <div class="goal-milestones">
+          <div class="milestone">
+            <div class="ms-kg" style="color:var(--text3)">90</div>
+            <div class="ms-label">スタート</div>
+            <div class="ms-badge" style="color:var(--text3)">今ここ</div>
+          </div>
+          <div class="milestone">
+            <div class="ms-kg">85</div>
+            <div class="ms-label">第1目標</div>
+            <div class="ms-badge" style="color:var(--amber-dk)">1.5ヶ月</div>
+          </div>
+          <div class="milestone">
+            <div class="ms-kg">80</div>
+            <div class="ms-label">中間目標</div>
+            <div class="ms-badge" style="color:var(--amber-dk)">3ヶ月</div>
+          </div>
+          <div class="milestone" style="border:1.5px solid var(--teal)">
+            <div class="ms-kg" style="color:var(--teal)">75</div>
+            <div class="ms-label">最終目標</div>
+            <div class="ms-badge" style="color:var(--teal-dk)">6ヶ月</div>
+          </div>
+        </div>
+        <div class="progress-bar" style="height:7px;margin-top:4px;">
+          <div class="progress-fill" id="goal-bar" style="width:0%;background:var(--teal)"></div>
+        </div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:4px;">
+          <span>達成率 <strong id="goal-pct">0</strong>%</span>
+          <span>残り <strong id="goal-remain">15.0</strong> kg</span>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">今週のまとめ</div>
+        <div class="row"><span class="row-label">Jexer来館</span><span class="row-val"><span id="prog-jexer">0</span> 回</span></div>
+        <div class="row"><span class="row-label">週間消費カロリー</span><span class="row-val"><span id="prog-burn">0</span> kcal</span></div>
+        <div class="row"><span class="row-label">今日の食事</span><span class="row-val"><span id="prog-kcal">0</span> kcal</span></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text3);">週3回ジム + 食事管理で月 2.5〜3 kg 減が目安</div>
+      </div>
+    </div>
+
+  </div><!-- end scroll-area -->
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('dash', this)">
+      <span class="tab-icon">🏠</span><span class="tab-label">ホーム</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('food', this)">
+      <span class="tab-icon">🍽</span><span class="tab-label">食事</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('jexer', this)">
+      <span class="tab-icon">🏋️</span><span class="tab-label">Jexer</span>
+    </button>
+    <button class="tab-btn" onclick="switchTab('progress', this)">
+      <span class="tab-icon">📈</span><span class="tab-label">進捗</span>
+    </button>
+  </div>
+</div>
+
+<script>
+  // ----------- STATE (persisted to localStorage) -----------
+  const STORE_KEY = 'hide_diet_v2';
+  const defaults = {
+    weight: 90.0,
+    todayKcal: 0,
+    water: 0,
+    foods: [],
+    macros: { carb: 0, protein: 0, fat: 0 },
+    weights: [],
+    jexerCount: 0,
+    weeklyBurn: 0,
+    workouts: [],
+    lastDate: ''
+  };
+
+  function load() {
+    try { return Object.assign({}, defaults, JSON.parse(localStorage.getItem(STORE_KEY) || '{}')); }
+    catch { return Object.assign({}, defaults); }
+  }
+  function save() { localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+
+  let state = load();
+
+  // Reset daily data if new day
+  const today = new Date().toLocaleDateString('ja-JP');
+  if (state.lastDate !== today) {
+    state.todayKcal = 0;
+    state.water = 0;
+    state.foods = [];
+    state.macros = { carb: 0, protein: 0, fat: 0 };
+    state.jexerCount = 0;
+    state.weeklyBurn = 0;
+    state.workouts = [];
+    state.lastDate = today;
+    save();
+  }
+
+  // ----------- FOOD DB -----------
+  const foodDB = {
+    rice:          { name: '白米1膳',        kcal: 260, carb: 57, protein: 4,  fat: 1 },
+    onigiri:       { name: 'おにぎり',        kcal: 185, carb: 38, protein: 3,  fat: 1 },
+    soba:          { name: 'ざる蕎麦',        kcal: 320, carb: 63, protein: 13, fat: 2 },
+    udon:          { name: 'うどん',          kcal: 300, carb: 59, protein: 9,  fat: 1 },
+    bread:         { name: '食パン1枚',       kcal: 160, carb: 30, protein: 5,  fat: 3 },
+    chicken_breast:{ name: '鶏むね肉100g',   kcal: 165, carb: 0,  protein: 31, fat: 4 },
+    egg:           { name: '卵1個',           kcal: 90,  carb: 0,  protein: 6,  fat: 7 },
+    tuna_sashimi:  { name: 'マグロ刺身',      kcal: 100, carb: 0,  protein: 22, fat: 1 },
+    tofu:          { name: '豆腐半丁',        kcal: 75,  carb: 2,  protein: 8,  fat: 4 },
+    natto:         { name: '納豆1パック',     kcal: 90,  carb: 7,  protein: 7,  fat: 4 },
+    protein_shake: { name: 'プロテイン',      kcal: 120, carb: 5,  protein: 24, fat: 2 },
+    salmon:        { name: 'サーモン100g',    kcal: 200, carb: 0,  protein: 20, fat: 13 },
+    salad:         { name: 'サラダ',          kcal: 30,  carb: 6,  protein: 1,  fat: 0 },
+    miso_soup:     { name: '味噌汁',          kcal: 40,  carb: 5,  protein: 3,  fat: 1 },
+    broccoli:      { name: 'ブロッコリー',    kcal: 35,  carb: 6,  protein: 4,  fat: 0 },
+    beer:          { name: 'ビール350ml',     kcal: 150, carb: 13, protein: 1,  fat: 0 },
+    coffee_black:  { name: 'コーヒー',        kcal: 5,   carb: 1,  protein: 0,  fat: 0 },
+    fruit:         { name: '果物',            kcal: 80,  carb: 20, protein: 1,  fat: 0 },
+    chips:         { name: 'スナック菓子',    kcal: 250, carb: 30, protein: 3,  fat: 13 }
+  };
+
+  const tips = [
+    'Jexerでのウエイトトレーニングは筋肉量を維持しながら脂肪を燃焼させます。48歳からの減量は急がず月3〜4kgが理想的なペースです。',
+    'タンパク質を毎食30〜45g摂ることで筋肉の分解を防ぎ代謝を維持できます。豆腐・鶏むね肉・納豆を活用しましょう。',
+    'トレーニング後30分以内にプロテインと炭水化物を摂取すると筋肉の回復が促進されます。',
+    '水2.5Lは代謝と脂肪燃焼を助けます。コーヒー前・食前・就寝前の習慣化が効果的です。',
+    'Jexer週3〜4回を継続することで基礎代謝が上がり、半年後には体質が変わります。焦らず継続が鍵。',
+    '炭水化物は夜より昼に多く摂ると体脂肪に変換されにくくなります。夕食の白米を半分にするだけで効果的です。',
+  ];
+
+  // ----------- UI UPDATES -----------
+  const KCAL_TARGET = 1850;
+  const WATER_TARGET = 2500;
+
+  function updateDash() {
+    const w = state.weight;
+    document.getElementById('dash-weight').textContent = w.toFixed(1);
+    document.getElementById('dash-kcal').textContent = state.todayKcal;
+    const rem = KCAL_TARGET - state.todayKcal;
+    document.getElementById('dash-remain').textContent = rem > 0 ? `残り ${rem.toLocaleString()} kcal` : `超過 ${Math.abs(rem).toLocaleString()} kcal`;
+    const pct = Math.min(100, Math.round(state.todayKcal / KCAL_TARGET * 100));
+    document.getElementById('dash-kbar').style.width = pct + '%';
+    document.getElementById('dash-kbar').style.background = pct > 100 ? 'var(--coral)' : 'var(--teal)';
+    document.getElementById('dash-kpct').textContent = pct + '%';
+    const bmi = w / (1.71 * 1.71);
+    document.getElementById('bmi-val').textContent = bmi.toFixed(1);
+    const bmiPct = Math.min(95, Math.max(5, (bmi - 16) / 24 * 100));
+    document.getElementById('bmi-marker').style.left = bmiPct + '%';
+    const tipIdx = new Date().getDay() % tips.length;
+    document.getElementById('dash-tip').textContent = tips[tipIdx];
+  }
+
+  function updateFood() {
+    const m = state.macros;
+    document.getElementById('carb-g').textContent = m.carb;
+    document.getElementById('prot-g').textContent = m.protein;
+    document.getElementById('fat-g').textContent = m.fat;
+    document.getElementById('carb-bar').style.width = Math.min(100, Math.round(m.carb/185*100)) + '%';
+    document.getElementById('prot-bar').style.width = Math.min(100, Math.round(m.protein/135*100)) + '%';
+    document.getElementById('fat-bar').style.width = Math.min(100, Math.round(m.fat/50*100)) + '%';
+    document.getElementById('food-total-kcal').textContent = state.todayKcal.toLocaleString();
+    document.getElementById('food-remain').textContent = Math.max(0, KCAL_TARGET - state.todayKcal).toLocaleString();
+
+    const list = document.getElementById('food-list');
+    if (!state.foods.length) {
+      list.innerHTML = '<li class="empty-state">まだ記録がありません</li>';
+      return;
+    }
+    const colors = ['#1D9E75','#EF9F27','#D85A30','#378ADD','#854F0B','#185FA5'];
+    list.innerHTML = state.foods.map((f, i) =>
+      `<li class="food-item">
+        <div class="food-dot" style="background:${colors[i%colors.length]}"></div>
+        <span class="food-name">${f.name}</span>
+        <span class="food-kcal">${f.kcal} kcal</span>
+        <span class="food-del" onclick="removeFood(${i})">×</span>
+      </li>`
+    ).join('');
+  }
+
+  function updateWater() {
+    const pct = Math.min(100, Math.round(state.water / WATER_TARGET * 100));
+    document.getElementById('water-bar').style.width = pct + '%';
+    document.getElementById('water-val').textContent = (state.water / 1000).toFixed(2) + 'L';
+  }
+
+  function updateProgress() {
+    document.getElementById('prog-jexer').textContent = state.jexerCount;
+    document.getElementById('prog-burn').textContent = state.weeklyBurn.toLocaleString();
+    document.getElementById('prog-kcal').textContent = state.todayKcal.toLocaleString();
+
+    const lost = 90 - state.weight;
+    const pct = Math.max(0, Math.min(100, Math.round(lost / 15 * 100)));
+    document.getElementById('goal-bar').style.width = pct + '%';
+    document.getElementById('goal-pct').textContent = pct;
+    document.getElementById('goal-remain').textContent = Math.max(0, state.weight - 75).toFixed(1);
+
+    renderWeightChart();
+  }
+
+  function renderWeightChart() {
+    const data = state.weights;
+    if (!data.length) return;
+    document.getElementById('chart-hint').style.display = 'none';
+    const n = Math.min(data.length, 12);
+    const slice = data.slice(-n);
+    const minW = 78, maxW = 92;
+    const W = 320, H = 90, ox = 18, oy = 10;
+    const xs = n > 1 ? W / (n - 1) : 0;
+    const ys = H / (maxW - minW);
+    const pts = slice.map((d, i) => {
+      const x = Math.round(ox + i * xs);
+      const y = Math.round(oy + (maxW - d.w) * ys);
+      return [x, y];
+    });
+    const ptStr = pts.map(p => p.join(',')).join(' ');
+    document.getElementById('wchart-line').setAttribute('points', ptStr);
+    const last = pts[pts.length-1];
+    const fill = `M${pts[0].join(',')} L${ptStr} L${last[0]},${oy+H} L${pts[0][0]},${oy+H} Z`;
+    document.getElementById('wchart-fill').setAttribute('d', fill);
+    document.getElementById('wchart-dots').innerHTML = pts.map((p, i) =>
+      `<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--teal)"/>
+       <text x="${p[0]}" y="${p[1]-7}" font-size="8" fill="var(--teal-dk)" text-anchor="middle">${slice[i].w}</text>`
+    ).join('');
+  }
+
+  // ----------- ACTIONS -----------
+  function addFood() {
+    const sel = document.getElementById('food-select');
+    const qty = parseFloat(document.getElementById('qty-input').value) || 1;
+    const key = sel.value;
+    if (!key) return;
+    const f = foodDB[key];
+    const entry = {
+      name: qty === 1 ? f.name : `${f.name} ×${qty}`,
+      kcal: Math.round(f.kcal * qty),
+      carb: Math.round(f.carb * qty),
+      protein: Math.round(f.protein * qty),
+      fat: Math.round(f.fat * qty)
+    };
+    state.foods.push(entry);
+    state.todayKcal += entry.kcal;
+    state.macros.carb += entry.carb;
+    state.macros.protein += entry.protein;
+    state.macros.fat += entry.fat;
+    sel.value = '';
+    document.getElementById('qty-input').value = '1';
+    save();
+    updateFood();
+    updateDash();
+    updateProgress();
+  }
+
+  function removeFood(idx) {
+    const f = state.foods[idx];
+    state.todayKcal = Math.max(0, state.todayKcal - f.kcal);
+    state.macros.carb = Math.max(0, state.macros.carb - f.carb);
+    state.macros.protein = Math.max(0, state.macros.protein - f.protein);
+    state.macros.fat = Math.max(0, state.macros.fat - f.fat);
+    state.foods.splice(idx, 1);
+    save();
+    updateFood();
+    updateDash();
+    updateProgress();
+  }
+
+  function addWater(ml) {
+    state.water = Math.min(state.water + ml, WATER_TARGET + 500);
+    save();
+    updateWater();
+  }
+
+  function logWorkout(name, kcal) {
+    if (state.workouts.includes(name)) return;
+    state.workouts.push(name);
+    state.jexerCount++;
+    state.weeklyBurn += kcal;
+    save();
+    const el = document.getElementById('workout-logged');
+    el.style.display = 'block';
+    el.textContent = '記録済み: ' + state.workouts.join(' / ');
+    updateProgress();
+  }
+
+  function logWeight() {
+    const val = parseFloat(document.getElementById('weight-input').value);
+    if (isNaN(val) || val < 50 || val > 200) { alert('正しい体重を入力してください'); return; }
+    state.weight = val;
+    const label = new Date().toLocaleDateString('ja-JP', {month:'numeric', day:'numeric'});
+    const existing = state.weights.findIndex(w => w.date === label);
+    if (existing >= 0) state.weights[existing].w = val;
+    else state.weights.push({ date: label, w: val });
+    if (state.weights.length > 30) state.weights.shift();
+    document.getElementById('weight-input').value = '';
+    save();
+    updateDash();
+    updateProgress();
+    document.getElementById('chart-hint').style.display = 'none';
+  }
+
+  function switchTab(id, btn) {
+    document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.getElementById('screen-' + id).classList.add('active');
+    btn.classList.add('active');
+    document.getElementById('scroll-area').scrollTop = 0;
+    if (id === 'progress') updateProgress();
+  }
+
+  // ----------- INIT -----------
+  const dateStr = new Date().toLocaleDateString('ja-JP', { year:'numeric', month:'long', day:'numeric', weekday:'short' });
+  document.getElementById('top-date').textContent = dateStr + ' — Jexer国分寺';
+
+  updateDash();
+  updateFood();
+  updateWater();
+  updateProgress();
+
+  // Service Worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(() => {});
+  }
+</script>
+</body>
+</html>
