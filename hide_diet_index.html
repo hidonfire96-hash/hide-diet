@@ -1,0 +1,998 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="HideDiet">
+<meta name="theme-color" content="#1D9E75">
+<link rel="manifest" href="manifest.json">
+<link rel="apple-touch-icon" href="icons/icon-192.png">
+<title>Hide's Diet</title>
+<style>
+:root {
+  --teal:#1D9E75;--teal-lt:#E1F5EE;--teal-dk:#0F6E56;
+  --amber:#EF9F27;--amber-lt:#FAEEDA;--amber-dk:#854F0B;
+  --coral:#D85A30;--coral-lt:#FAECE7;
+  --blue:#378ADD;--blue-lt:#E6F1FB;--blue-dk:#185FA5;
+  --bg:#f5f4f0;--surface:#ffffff;--surface2:#f0efe9;
+  --text:#1a1918;--text2:#5f5e5a;--text3:#999891;
+  --border:rgba(0,0,0,0.10);--border2:rgba(0,0,0,0.18);
+  --radius:14px;--radius-sm:8px;
+  --safe-top:env(safe-area-inset-top,44px);
+  --safe-bot:env(safe-area-inset-bottom,20px);
+}
+@media(prefers-color-scheme:dark){
+  :root{--bg:#111110;--surface:#1c1c1a;--surface2:#252422;--text:#f0efe9;--text2:#999891;--text3:#5f5e5a;--border:rgba(255,255,255,0.10);--border2:rgba(255,255,255,0.18);--teal-lt:#0a3d2b;--amber-lt:#3a2a08;--coral-lt:#3d1a0c;--blue-lt:#0c2540;}
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-system,'Hiragino Sans',sans-serif;}
+.app-shell{display:flex;flex-direction:column;height:100%;max-width:430px;margin:0 auto;}
+.status-bar-spacer{height:var(--safe-top);background:var(--surface);flex-shrink:0;}
+.top-bar{background:var(--surface);border-bottom:0.5px solid var(--border);padding:12px 16px 10px;flex-shrink:0;}
+.top-bar h1{font-size:20px;font-weight:600;color:var(--text);}
+.top-bar p{font-size:12px;color:var(--text3);margin-top:1px;}
+.scroll-area{flex:1;overflow-y:auto;-webkit-overflow-scrolling:touch;padding:12px 14px;padding-bottom:calc(80px + var(--safe-bot));background:var(--bg);}
+.tab-bar{position:fixed;bottom:0;left:50%;transform:translateX(-50%);width:100%;max-width:430px;background:var(--surface);border-top:0.5px solid var(--border);display:flex;padding-bottom:var(--safe-bot);z-index:100;}
+.tab-btn{flex:1;padding:8px 4px 6px;display:flex;flex-direction:column;align-items:center;gap:3px;background:none;border:none;cursor:pointer;color:var(--text3);transition:color 0.15s;}
+.tab-btn.active{color:var(--teal);}
+.tab-icon{font-size:22px;line-height:1;}
+.tab-label{font-size:10px;font-weight:500;}
+.screen{display:none;}
+.screen.active{display:block;}
+.card{background:var(--surface);border-radius:var(--radius);border:0.5px solid var(--border);padding:14px 16px;margin-bottom:10px;}
+.card-title{font-size:11px;font-weight:600;color:var(--text3);text-transform:uppercase;letter-spacing:.08em;margin-bottom:12px;}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px;}
+.stat-card{background:var(--surface);border:0.5px solid var(--border);border-radius:var(--radius);padding:12px 14px;}
+.stat-label{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.stat-value{font-size:28px;font-weight:600;color:var(--text);line-height:1;}
+.stat-unit{font-size:12px;color:var(--text2);}
+.stat-sub{font-size:11px;color:var(--text3);margin-top:3px;}
+.progress-bar{height:5px;background:var(--surface2);border-radius:3px;overflow:hidden;margin:6px 0 3px;}
+.progress-fill{height:100%;border-radius:3px;transition:width .5s cubic-bezier(.4,0,.2,1);}
+.row{display:flex;justify-content:space-between;align-items:center;padding:5px 0;}
+.row-label{font-size:14px;color:var(--text2);}
+.row-val{font-size:14px;font-weight:500;color:var(--text);}
+.badge{display:inline-block;font-size:11px;font-weight:600;padding:2px 8px;border-radius:20px;}
+.b-teal{background:var(--teal-lt);color:var(--teal-dk);}
+.b-amber{background:var(--amber-lt);color:var(--amber-dk);}
+.tip-box{background:var(--teal-lt);border-radius:var(--radius-sm);padding:12px 14px;margin-bottom:10px;}
+.tip-title{font-size:11px;font-weight:600;color:var(--teal-dk);margin-bottom:4px;}
+.tip-text{font-size:13px;color:var(--teal-dk);line-height:1.6;}
+.bmi-bar{height:10px;border-radius:5px;overflow:hidden;background:linear-gradient(to right,#B5D4F4 0%,#C0DD97 20%,#FAC775 35%,#F0997B 55%,#ED93B1 100%);position:relative;margin:8px 0 4px;}
+.bmi-marker{position:absolute;top:-4px;width:4px;height:18px;background:var(--text);border-radius:2px;transform:translateX(-50%);transition:left .4s;}
+.bmi-labels{display:flex;justify-content:space-between;font-size:10px;color:var(--text3);}
+/* macros */
+.macro-row{display:flex;gap:8px;margin-bottom:12px;}
+.macro-card{flex:1;background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center;}
+.macro-name{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.macro-val{font-size:18px;font-weight:600;color:var(--text);}
+.macro-unit{font-size:10px;color:var(--text3);}
+/* food */
+.food-list{list-style:none;}
+.food-item{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:.5px solid var(--border);}
+.food-item:last-child{border-bottom:none;}
+.food-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.food-name{flex:1;font-size:14px;color:var(--text);}
+.food-kcal{font-size:13px;color:var(--text3);}
+.food-del{font-size:18px;color:var(--text3);cursor:pointer;padding:0 4px;}
+.food-select{width:100%;font-size:14px;padding:10px 12px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);appearance:none;-webkit-appearance:none;margin-bottom:8px;}
+.btn{font-size:14px;font-weight:500;padding:10px 16px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);cursor:pointer;transition:background .15s;white-space:nowrap;}
+.btn:active{background:var(--border2);transform:scale(0.98);}
+.btn-primary{background:var(--teal);color:#fff;border-color:var(--teal);}
+.btn-primary:active{background:var(--teal-dk);}
+.water-btns{display:flex;gap:6px;margin-top:8px;}
+.water-btns button{flex:1;}
+/* meal plan */
+.plan-overview{background:var(--surface);border:1.5px solid var(--teal);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;}
+.plan-title{font-size:12px;font-weight:600;color:var(--teal-dk);margin-bottom:8px;}
+.plan-slots{display:flex;align-items:center;gap:4px;margin-bottom:8px;}
+.plan-slot{flex:1;text-align:center;background:var(--teal-lt);border-radius:var(--radius-sm);padding:6px 4px;}
+.ps-label{display:block;font-size:10px;color:var(--teal-dk);font-weight:600;}
+.ps-kcal{display:block;font-size:12px;color:var(--teal-dk);font-weight:700;}
+.ps-plus{font-size:14px;color:var(--text3);flex-shrink:0;}
+.plan-note{font-size:11px;color:var(--coral);font-weight:500;line-height:1.4;}
+.meal-tab-btn{flex:1;font-size:12px;font-weight:500;padding:8px 4px;border-radius:20px;border:.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;transition:all .15s;}
+.meal-tab-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+.meal-card-header{display:flex;align-items:center;gap:6px;margin-bottom:10px;}
+.meal-icon{font-size:16px;}
+.meal-label{font-size:13px;color:var(--text2);}
+.meal-choice{display:flex;gap:10px;align-items:flex-start;padding:10px;border-radius:var(--radius-sm);border:1.5px solid var(--border);margin-bottom:8px;cursor:pointer;transition:all .15s;background:var(--surface2);}
+.meal-choice:last-child{margin-bottom:0;}
+.meal-choice.selected{border-color:var(--teal);background:var(--teal-lt);}
+.mc-radio{width:18px;height:18px;border-radius:50%;border:2px solid var(--border2);flex-shrink:0;margin-top:2px;transition:all .15s;position:relative;}
+.meal-choice.selected .mc-radio{border-color:var(--teal);background:var(--teal);}
+.meal-choice.selected .mc-radio::after{content:'';position:absolute;top:3px;left:3px;width:6px;height:6px;border-radius:50%;background:white;}
+.mc-body{flex:1;min-width:0;}
+.mc-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
+.mc-detail{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.mc-tags{display:flex;gap:4px;flex-wrap:wrap;margin-bottom:5px;}
+.mc-kcal{font-size:11px;font-weight:700;padding:1px 6px;border-radius:4px;background:var(--surface);color:var(--text2);border:.5px solid var(--border2);}
+.meal-choice.selected .mc-kcal{background:white;}
+.mc-why{font-size:11px;color:var(--text3);line-height:1.5;}
+.meal-choice.selected .mc-why{color:var(--teal-dk);}
+.cm-p{font-size:10px;font-weight:600;padding:1px 5px;border-radius:4px;background:var(--teal-lt);color:var(--teal-dk);}
+.cm-c{font-size:10px;font-weight:600;padding:1px 5px;border-radius:4px;background:var(--amber-lt);color:var(--amber-dk);}
+.cm-f{font-size:10px;font-weight:600;padding:1px 5px;border-radius:4px;background:var(--coral-lt);color:#993C1D;}
+/* cvs avoid */
+.cvs-item{display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:.5px solid var(--border);}
+.cvs-item:last-child{border-bottom:none;}
+.cvs-badge{font-size:10px;font-weight:700;padding:3px 6px;border-radius:6px;white-space:nowrap;flex-shrink:0;margin-top:2px;min-width:36px;text-align:center;background:var(--teal-lt);color:var(--teal-dk);}
+.cvs-badge.bad{background:var(--coral-lt);color:#993C1D;}
+.cvs-badge.warn{background:var(--amber-lt);color:var(--amber-dk);}
+.cvs-info{flex:1;}
+.cvs-name{font-size:13px;font-weight:500;color:var(--text);margin-bottom:2px;}
+.cvs-reason{font-size:11px;color:var(--text3);line-height:1.4;}
+/* manual kcal input */
+.manual-kcal-box{background:var(--surface2);border-radius:var(--radius-sm);border:.5px solid var(--border2);padding:12px;margin-top:10px;}
+.manual-kcal-title{font-size:12px;font-weight:600;color:var(--text2);margin-bottom:8px;}
+.manual-kcal-row{display:flex;gap:8px;margin-bottom:6px;}
+.manual-input{flex:1;font-size:14px;padding:8px 10px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);}
+.manual-kcal-num{width:90px;font-size:14px;padding:8px 10px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface);color:var(--text);text-align:center;}
+/* workout */
+.day-sel-btn{flex-shrink:0;font-size:12px;font-weight:500;padding:7px 14px;border-radius:20px;border:.5px solid var(--border2);background:var(--surface);color:var(--text2);cursor:pointer;white-space:nowrap;transition:all .15s;}
+.day-sel-btn.active{background:var(--teal);color:#fff;border-color:var(--teal);}
+.today-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:#EF9F27;color:#fff;margin-left:4px;vertical-align:middle;}
+.done-badge{display:inline-block;font-size:10px;font-weight:700;padding:1px 6px;border-radius:8px;background:#888780;color:#fff;margin-left:4px;vertical-align:middle;}
+.ex-card{display:flex;gap:10px;align-items:flex-start;padding:10px 0;border-bottom:.5px solid var(--border);}
+.ex-card.last{border-bottom:none;margin-bottom:8px;}
+.ex-illust{width:72px;height:56px;flex-shrink:0;background:var(--surface2);border-radius:var(--radius-sm);border:.5px solid var(--border);overflow:hidden;display:flex;align-items:center;justify-content:center;}
+.ex-illust svg{width:100%;height:100%;}
+.ex-info{flex:1;min-width:0;}
+.ex-name2{font-size:13px;font-weight:600;color:var(--text);margin-bottom:3px;}
+.ex-note2{font-size:11px;color:var(--text3);line-height:1.5;margin-bottom:5px;}
+.ex-nums{display:flex;gap:6px;align-items:center;}
+.ex-w2{font-size:14px;font-weight:700;color:var(--teal);background:var(--teal-lt);padding:2px 8px;border-radius:6px;}
+.ex-s2{font-size:12px;font-weight:500;color:var(--text2);}
+.cardio-block{background:var(--teal-lt);border-radius:var(--radius-sm);padding:10px 12px;margin-top:4px;}
+.cardio-row{display:flex;justify-content:space-between;font-size:12px;color:var(--teal-dk);padding:3px 0;}
+.hiit-row{display:flex;align-items:center;gap:8px;padding:4px 0;font-size:12px;color:#993C1D;}
+.hiit-phase{font-size:11px;font-weight:600;padding:2px 8px;border-radius:10px;min-width:70px;text-align:center;}
+.hiit-phase.warm{background:var(--amber-lt);color:var(--amber-dk);}
+.hiit-phase.hard{background:var(--coral-lt);color:#993C1D;}
+.hiit-phase.rest2{background:var(--teal-lt);color:var(--teal-dk);}
+.rest-tip{font-size:12px;color:var(--text3);text-align:center;padding:6px 0 10px;}
+.cardio-option{border-bottom:.5px solid rgba(29,158,117,.2);padding:8px 0;}
+.cardio-option:last-child{border-bottom:none;}
+.co-title{font-size:13px;font-weight:500;color:var(--teal-dk);margin-bottom:3px;}
+.co-detail{font-size:12px;color:var(--teal-dk);line-height:1.5;}
+.guide-item{display:flex;gap:12px;align-items:flex-start;padding:10px 0;border-bottom:.5px solid var(--border);}
+.guide-item:last-child{border-bottom:none;}
+.guide-num{width:26px;height:26px;border-radius:50%;background:var(--teal-lt);color:var(--teal-dk);font-size:13px;font-weight:600;display:flex;align-items:center;justify-content:center;flex-shrink:0;}
+.guide-text{font-size:13px;color:var(--text2);line-height:1.6;padding-top:3px;}
+.workout-logged{background:var(--teal-lt);border-radius:var(--radius-sm);padding:8px 12px;margin-bottom:10px;font-size:13px;color:var(--teal-dk);display:none;}
+.log-btns{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+/* progress */
+.weight-chart-wrap{height:130px;margin:8px 0;}
+.weight-chart-wrap svg{width:100%;height:100%;}
+.weight-num{flex:1;font-size:22px;font-weight:600;padding:8px 12px;border:.5px solid var(--border2);border-radius:var(--radius-sm);background:var(--surface2);color:var(--text);text-align:center;}
+.goal-milestones{display:flex;gap:6px;margin:10px 0;}
+.milestone{flex:1;background:var(--surface2);border-radius:var(--radius-sm);padding:10px;text-align:center;border:.5px solid var(--border);}
+.ms-kg{font-size:18px;font-weight:600;color:var(--text);}
+.ms-label{font-size:11px;color:var(--text3);margin-top:2px;}
+.ms-badge{font-size:11px;font-weight:600;margin-top:4px;}
+.empty-state{font-size:13px;color:var(--text3);padding:12px 0;text-align:center;}
+.cvs-banner{background:var(--teal-lt);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;border:.5px solid rgba(29,158,117,.25);}
+.cvs-banner-title{font-size:12px;font-weight:600;color:var(--teal-dk);margin-bottom:5px;}
+.cvs-banner-body{font-size:13px;color:var(--teal-dk);line-height:1.6;}
+</style>
+</head>
+<body>
+<div class="app-shell">
+  <div class="status-bar-spacer"></div>
+  <div class="top-bar">
+    <h1>Hide's Diet</h1>
+    <p id="top-date">Jexer国分寺 連携プラン</p>
+  </div>
+  <div class="scroll-area" id="scroll-area">
+
+    <!-- DASHBOARD -->
+    <div id="screen-dash" class="screen active">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-label">現在の体重</div>
+          <div class="stat-value" id="dash-weight">84.5</div>
+          <div class="stat-unit">kg</div>
+          <div class="stat-sub">目標 75 kg</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-label">今日のカロリー</div>
+          <div class="stat-value" id="dash-kcal">0</div>
+          <div class="stat-unit">kcal</div>
+          <div class="stat-sub" id="dash-remain">目標 1,850 kcal</div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">BMI</div>
+        <div style="display:flex;align-items:baseline;gap:8px;margin-bottom:4px;">
+          <span style="font-size:32px;font-weight:600;color:var(--text)" id="bmi-val">28.9</span>
+          <span class="badge b-amber" id="bmi-badge">過体重</span>
+        </div>
+        <div class="bmi-bar"><div class="bmi-marker" id="bmi-marker" style="left:50%"></div></div>
+        <div class="bmi-labels"><span>低体重</span><span>標準</span><span>過体重</span><span>肥満</span></div>
+        <div style="font-size:12px;color:var(--text3);margin-top:6px;">目標 BMI 25.6 → 体重 <strong>75 kg</strong> ／ 残り <strong id="dash-remain-kg">9.5</strong> kg</div>
+      </div>
+      <div class="card">
+        <div class="card-title">カロリー目標</div>
+        <div class="row"><span class="row-label">基礎代謝 (BMR)</span><span class="row-val" id="dash-bmr">1,886 kcal</span></div>
+        <div class="row"><span class="row-label">消費カロリー (TDEE)</span><span class="row-val" id="dash-tdee">2,414 kcal</span></div>
+        <div class="row"><span class="row-label">目標摂取カロリー</span><span class="row-val" style="color:var(--teal);font-size:16px;">1,850 kcal</span></div>
+        <div class="progress-bar"><div class="progress-fill" id="dash-kbar" style="width:0%;background:var(--teal)"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--text3);">
+          <span id="dash-kpct">0%</span><span id="today-menu-badge">今日のメニュー読み込み中...</span>
+        </div>
+      </div>
+      <div class="tip-box">
+        <div class="tip-title">今日のアドバイス</div>
+        <div class="tip-text" id="dash-tip">読み込み中...</div>
+      </div>
+    </div>
+
+    <!-- FOOD -->
+    <div id="screen-food" class="screen">
+      <div class="cvs-banner" id="cvs-banner">
+        <div class="cvs-banner-title" id="cvs-banner-title">今日のおすすめ</div>
+        <div class="cvs-banner-body" id="cvs-banner-body">読み込み中...</div>
+      </div>
+      <div class="card">
+        <div class="card-title">今日の栄養</div>
+        <div class="macro-row">
+          <div class="macro-card">
+            <div class="macro-name">炭水化物</div>
+            <div class="macro-val"><span id="carb-g">0</span><span class="macro-unit">g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="carb-bar" style="width:0%;background:#EF9F27"></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標185g</div>
+          </div>
+          <div class="macro-card">
+            <div class="macro-name">タンパク質</div>
+            <div class="macro-val"><span id="prot-g">0</span><span class="macro-unit">g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="prot-bar" style="width:0%;background:var(--teal)"></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標130g</div>
+          </div>
+          <div class="macro-card">
+            <div class="macro-name">脂質</div>
+            <div class="macro-val"><span id="fat-g">0</span><span class="macro-unit">g</span></div>
+            <div class="progress-bar"><div class="progress-fill" id="fat-bar" style="width:0%;background:var(--coral)"></div></div>
+            <div style="font-size:10px;color:var(--text3);">目標50g</div>
+          </div>
+        </div>
+        <div style="font-size:12px;color:var(--text3);text-align:center;">合計 <strong id="food-total-kcal">0</strong> kcal ／ 残り <strong id="food-remain">1,850</strong> kcal</div>
+      </div>
+
+      <div style="display:flex;gap:6px;margin-bottom:10px;">
+        <button class="meal-tab-btn active" onclick="showMealTab('recommend',this)">おすすめ</button>
+        <button class="meal-tab-btn" onclick="showMealTab('log',this)">記録する</button>
+        <button class="meal-tab-btn" onclick="showMealTab('avoid',this)">注意食品</button>
+      </div>
+
+      <!-- RECOMMEND TAB -->
+      <div id="mtab-recommend" class="meal-tab">
+        <div class="plan-overview">
+          <div class="plan-title">1日の献立プラン — 合計 1,700 kcal目安</div>
+          <div class="plan-slots">
+            <div class="plan-slot"><span class="ps-label">朝</span><span class="ps-kcal">〜350</span></div>
+            <div class="ps-plus">+</div>
+            <div class="plan-slot"><span class="ps-label">昼</span><span class="ps-kcal">〜550</span></div>
+            <div class="ps-plus">+</div>
+            <div class="plan-slot"><span class="ps-label">夕</span><span class="ps-kcal">〜600</span></div>
+            <div class="ps-plus">+</div>
+            <div class="plan-slot"><span class="ps-label">間食</span><span class="ps-kcal">〜200</span></div>
+          </div>
+          <div class="plan-note">各食事で「1つだけ選んで記録」してください。全部食べると1日分を超えます。</div>
+        </div>
+        <div class="card">
+          <div class="meal-card-header"><span class="meal-icon">🌅</span><span class="meal-label">朝食 — <strong>1つだけ</strong>（〜350 kcal）</span></div>
+          <div class="meal-choice" onclick="selectMeal(this,'br1')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">サラダチキン＋ギリシャヨーグルト無糖</div><div class="mc-detail">セブン・ローソン・ファミマ共通</div><div class="mc-tags"><span class="cm-p">P 35g</span><span class="cm-c">C 7g</span><span class="cm-f">F 3g</span><span class="mc-kcal">183 kcal</span></div><div class="mc-why">朝のベスト。タンパク質35gを一気に確保。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'br2')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">ゆで卵2個＋納豆巻き</div><div class="mc-detail">各社共通 / 炭水化物も摂れる朝食</div><div class="mc-tags"><span class="cm-p">P 20g</span><span class="cm-c">C 42g</span><span class="cm-f">F 13g</span><span class="mc-kcal">374 kcal</span></div><div class="mc-why">腹持ちが欲しい朝に。午前中の集中力を維持。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'br3')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">ギリシャヨーグルト＋プロテインバー</div><div class="mc-detail">時間がない朝の最速コンビ</div><div class="mc-tags"><span class="cm-p">P 25g</span><span class="cm-c">C 25g</span><span class="cm-f">F 7g</span><span class="mc-kcal">260 kcal</span></div><div class="mc-why">2分で食べ終わる。Jexer朝一の日はこれ。</div></div></div>
+        </div>
+        <div class="card">
+          <div class="meal-card-header"><span class="meal-icon">☀️</span><span class="meal-label">昼食 — <strong>1つだけ</strong>（〜550 kcal）</span></div>
+          <div class="meal-choice" onclick="selectMeal(this,'lu1')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">サラダチキン＋ざるそば</div><div class="mc-detail">最強の昼食コンビ / 低GI＋高タンパク</div><div class="mc-tags"><span class="cm-p">P 39g</span><span class="cm-c">C 58g</span><span class="cm-f">F 5g</span><span class="mc-kcal">423 kcal</span></div><div class="mc-why">昼の定番。タンパク質39gと炭水化物を両立。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'lu2')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">冷しゃぶサラダ＋鮭おにぎり</div><div class="mc-detail">セブン・ローソン / ドレッシング少なめ</div><div class="mc-tags"><span class="cm-p">P 19g</span><span class="cm-c">C 46g</span><span class="cm-f">F 10g</span><span class="mc-kcal">352 kcal</span></div><div class="mc-why">野菜も摂れてバランス良好。Jexer後の昼に。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'lu3')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">鶏むねサラダ＋ゆで卵＋豆腐バー</div><div class="mc-detail">低糖質ランチ / 体重停滞期に有効</div><div class="mc-tags"><span class="cm-p">P 38g</span><span class="cm-c">C 8g</span><span class="cm-f">F 14g</span><span class="mc-kcal">310 kcal</span></div><div class="mc-why">炭水化物を抑えたい日に。</div></div></div>
+        </div>
+        <div class="card">
+          <div class="meal-card-header"><span class="meal-icon">🌙</span><span class="meal-label">夕食 — <strong>1つだけ</strong>（〜600 kcal）</span></div>
+          <div class="meal-choice" onclick="selectMeal(this,'di1')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">焼き鳥（塩）3本＋海藻サラダ＋豆腐バー</div><div class="mc-detail">夜の鉄板セット / 炭水化物ほぼゼロ</div><div class="mc-tags"><span class="cm-p">P 37g</span><span class="cm-c">C 9g</span><span class="cm-f">F 14g</span><span class="mc-kcal">325 kcal</span></div><div class="mc-why">夜は炭水化物を絞る。低カロリーで37g摂取。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'di2')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">おでん（大根・卵・こんにゃく）＋サラダチキン</div><div class="mc-detail">秋冬の定番 / 温かくて満足感大</div><div class="mc-tags"><span class="cm-p">P 35g</span><span class="cm-c">C 12g</span><span class="cm-f">F 7g</span><span class="mc-kcal">243 kcal</span></div><div class="mc-why">低カロリーで腹持ち抜群。Jexer帰りに最適。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'di3')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">ゆで卵2個＋サラダチキン＋冷しゃぶサラダ</div><div class="mc-detail">タンパク質フル補給の夜メニュー</div><div class="mc-tags"><span class="cm-p">P 51g</span><span class="cm-c">C 8g</span><span class="cm-f">F 18g</span><span class="mc-kcal">417 kcal</span></div><div class="mc-why">Jexer後はP50g以上が理想。このセットで達成。</div></div></div>
+        </div>
+        <div class="card">
+          <div class="meal-card-header"><span class="meal-icon">⚡</span><span class="meal-label">間食 — 必要な時だけ1つ（〜200 kcal）</span></div>
+          <div style="font-size:12px;color:var(--coral);margin-bottom:8px;padding:6px 10px;background:var(--coral-lt);border-radius:var(--radius-sm);">毎日必須ではありません。空腹感が強い時・Jexer前後のみ。</div>
+          <div class="meal-choice" onclick="selectMeal(this,'sn1')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">プロテインバー（inバーなど）</div><div class="mc-detail">Jexer前後30分以内に / ローソン・ファミマ</div><div class="mc-tags"><span class="cm-p">P 15g</span><span class="cm-c">C 18g</span><span class="cm-f">F 7g</span><span class="mc-kcal">190 kcal</span></div><div class="mc-why">トレーニング前後の補給に最適。</div></div></div>
+          <div class="meal-choice" onclick="selectMeal(this,'sn2')"><div class="mc-radio"></div><div class="mc-body"><div class="mc-name">アーモンド小袋（素焼き）1袋だけ</div><div class="mc-detail">各社共通 / 1袋で止める。2袋はNG</div><div class="mc-tags"><span class="cm-p">P 6g</span><span class="cm-c">C 5g</span><span class="cm-f">F 14g</span><span class="mc-kcal">160 kcal</span></div><div class="mc-why">小腹が空いた午後に。1袋厳守。</div></div></div>
+        </div>
+      </div>
+
+      <!-- LOG TAB -->
+      <div id="mtab-log" class="meal-tab" style="display:none">
+        <div class="card">
+          <div class="card-title">食事ログ</div>
+          <ul class="food-list" id="food-list"><li class="empty-state">まだ記録がありません</li></ul>
+          <div style="margin-top:10px;">
+            <select class="food-select" id="food-select">
+              <option value="">コンビニ食品を選択して追加...</option>
+              <optgroup label="◎ ベスト">
+                <option value="salad_chicken">サラダチキン（プレーン）113kcal</option>
+                <option value="boiled_egg2">ゆで卵2個パック 144kcal</option>
+                <option value="greek_yogurt">ギリシャヨーグルト無糖 70kcal</option>
+                <option value="tofu_bar">豆腐バー 90kcal</option>
+                <option value="yakitori_shio">焼き鳥（塩）2本 130kcal</option>
+                <option value="protein_bar">プロテインバー 190kcal</option>
+                <option value="almond">アーモンド小袋 160kcal</option>
+              </optgroup>
+              <optgroup label="○ 昼食向き">
+                <option value="chicken_onigiri_set">サラダチキン+鮭おにぎり 305kcal</option>
+                <option value="zaru_soba">ざるそば 310kcal</option>
+                <option value="cold_shabu_salad">冷しゃぶサラダ 160kcal</option>
+                <option value="chicken_salad_egg">鶏むねサラダ+ゆで卵 220kcal</option>
+              </optgroup>
+              <optgroup label="○ 夕食向き">
+                <option value="oden">おでん3種 130kcal</option>
+                <option value="seaweed_tofu">海藻サラダ+豆腐 105kcal</option>
+                <option value="egg_chicken_night">ゆで卵+サラダチキン夜 205kcal</option>
+              </optgroup>
+              <optgroup label="飲み物">
+                <option value="black_coffee">ブラックコーヒー 5kcal</option>
+                <option value="mineral_water">ミネラルウォーター 0kcal</option>
+              </optgroup>
+            </select>
+            <button class="btn btn-primary" style="width:100%;margin-bottom:8px" onclick="addFood()">選択した食品を記録</button>
+          </div>
+          <!-- Manual input -->
+          <div class="manual-kcal-box">
+            <div class="manual-kcal-title">📝 手入力（コンビニ商品・外食など）</div>
+            <div class="manual-kcal-row">
+              <input class="manual-input" id="manual-name" type="text" placeholder="食品名（例：牛丼並）" maxlength="30">
+            </div>
+            <div class="manual-kcal-row">
+              <input class="manual-kcal-num" id="manual-kcal" type="number" placeholder="kcal" min="0" max="3000">
+              <input class="manual-kcal-num" id="manual-protein" type="number" placeholder="タンパク質g" min="0" max="200">
+              <button class="btn btn-primary" onclick="addManual()">追加</button>
+            </div>
+            <div style="font-size:11px;color:var(--text3);">カロリーのみでもOK。タンパク質gは任意。</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">水分摂取</div>
+          <div class="row"><span class="row-label">今日の水分</span><span class="row-val"><span id="water-val">0.00</span>L / 2.5L</span></div>
+          <div class="progress-bar"><div class="progress-fill" id="water-bar" style="width:0%;background:var(--blue)"></div></div>
+          <div class="water-btns">
+            <button class="btn" onclick="addWater(200)">+200ml</button>
+            <button class="btn" onclick="addWater(500)">+500ml</button>
+            <button class="btn" onclick="addWater(750)">+750ml</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- AVOID TAB -->
+      <div id="mtab-avoid" class="meal-tab" style="display:none">
+        <div class="card">
+          <div class="card-title">コンビニ地雷食品</div>
+          <div class="cvs-item"><div class="cvs-badge bad">✕ NG</div><div class="cvs-info"><div class="cvs-name">菓子パン（クリームパン・メロンパン）</div><div class="cvs-reason">糖質40〜60g＋脂質20g以上。脂肪直行コンボ。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge bad">✕ NG</div><div class="cvs-info"><div class="cvs-name">チキン系揚げ物（Lチキ・ファミチキ）</div><div class="cvs-reason">一見タンパク源だが脂質20g超。衣の糖質も高い。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge bad">✕ NG</div><div class="cvs-info"><div class="cvs-name">缶コーヒー（加糖・微糖）</div><div class="cvs-reason">「微糖」でも砂糖3〜5g。毎日飲むと積み重なる。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge bad">✕ NG</div><div class="cvs-info"><div class="cvs-name">カップラーメン</div><div class="cvs-reason">塩分6〜8g、脂質15〜20g。週1回程度にとどめる。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge bad">✕ NG</div><div class="cvs-info"><div class="cvs-name">スポーツドリンク500ml</div><div class="cvs-reason">砂糖30〜35g入り。Jexer1時間程度では不要。水で十分。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge warn">△ 注意</div><div class="cvs-info"><div class="cvs-name">おにぎり（ツナマヨ・チャーシュー）</div><div class="cvs-reason">脂質が高め。鮭・梅・昆布を選ぶ。</div></div></div>
+          <div class="cvs-item"><div class="cvs-badge warn">△ 注意</div><div class="cvs-info"><div class="cvs-name">ドレッシング（フレンチ・ごまダレ）</div><div class="cvs-reason">1袋で脂質10g超。ノンオイル・ポン酢に変える。</div></div></div>
+        </div>
+        <div class="tip-box" style="margin-top:0">
+          <div class="tip-title">コンビニ攻略のコツ</div>
+          <div class="tip-text">迷ったら「タンパク質が多く脂質が少ない」を選ぶ。P÷kcal×100が20%以上なら合格。サラダチキンは常に正解。</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- JEXER -->
+    <div id="screen-jexer" class="screen">
+      <div id="today-plan-banner" style="background:var(--amber-lt);border-radius:var(--radius);padding:12px 14px;margin-bottom:10px;border:.5px solid var(--amber);">
+        <div style="font-size:12px;font-weight:600;color:var(--amber-dk);" id="today-plan-title">今日のメニュー</div>
+        <div style="font-size:13px;color:var(--amber-dk);margin-top:4px;" id="today-plan-body">読み込み中...</div>
+      </div>
+      <div style="display:flex;gap:6px;overflow-x:auto;padding-bottom:4px;margin-bottom:10px;-webkit-overflow-scrolling:touch;" id="day-selector"></div>
+
+      <!-- DAY A -->
+      <div id="day-A" class="day-plan" style="display:none">
+        <div class="card">
+          <div class="card-title">Day A — 上半身マシン</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">所要時間 約50分 ／ 消費 約300 kcal ／ <strong>初心者マシンのみ</strong></div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="40" width="24" height="6" rx="2" fill="#1D9E75" opacity=".7"/><rect x="34" y="46" width="12" height="12" rx="2" fill="#0F6E56"/><rect x="52" y="18" width="6" height="28" rx="3" fill="#1D9E75" opacity=".8"/><ellipse cx="42" cy="32" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="42" cy="20" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="36" y1="30" x2="22" y2="26" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="48" y1="30" x2="62" y2="26" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><rect x="16" y="22" width="8" height="4" rx="2" fill="#0F6E56"/><rect x="56" y="22" width="8" height="4" rx="2" fill="#0F6E56"/><rect x="14" y="18" width="4" height="30" rx="2" fill="#888780" opacity=".5"/><rect x="62" y="18" width="4" height="30" rx="2" fill="#888780" opacity=".5"/><text x="40" y="62" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">胸・肩・三頭筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">チェストプレスマシン</div><div class="ex-note2">座ってハンドルを前に押す。背中をシートに密着させ胸の力で押す。肘を曲げて下ろす時もゆっくり。</div><div class="ex-nums"><span class="ex-w2">30 kg</span><span class="ex-s2">3 × 12回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="30" y="42" width="20" height="6" rx="2" fill="#1D9E75" opacity=".7"/><rect x="35" y="48" width="10" height="10" rx="2" fill="#0F6E56"/><rect x="50" y="20" width="5" height="30" rx="2" fill="#1D9E75" opacity=".6"/><ellipse cx="40" cy="36" rx="6" ry="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="24" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="35" y1="32" x2="24" y2="20" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="45" y1="32" x2="56" y2="20" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><rect x="18" y="16" width="8" height="4" rx="2" fill="#0F6E56"/><rect x="54" y="16" width="8" height="4" rx="2" fill="#0F6E56"/><text x="40" y="62" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">肩・三角筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">ショルダープレスマシン</div><div class="ex-note2">ハンドルを真上に押し上げる。肘が耳より前に出ないよう意識。肩の真上に向けて押す。</div><div class="ex-nums"><span class="ex-w2">15 kg</span><span class="ex-s2">3 × 12回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="60" height="4" rx="2" fill="#888780" opacity=".6"/><line x1="40" y1="12" x2="40" y2="20" stroke="#888780" stroke-width="2"/><rect x="22" y="20" width="36" height="4" rx="2" fill="#0F6E56"/><rect x="28" y="48" width="24" height="5" rx="2" fill="#1D9E75" opacity=".6"/><rect x="34" y="53" width="12" height="8" rx="2" fill="#0F6E56"/><ellipse cx="40" cy="40" rx="6" ry="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="28" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="35" y1="36" x2="26" y2="24" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="45" y1="36" x2="54" y2="24" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">背中・広背筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">ラットプルダウン</div><div class="ex-note2">上のバーを鎖骨に向けて引き下げる。胸を張り、腕ではなく肘を下に引く意識で背中を使う。</div><div class="ex-nums"><span class="ex-w2">40 kg</span><span class="ex-s2">3 × 12回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="16" width="8" height="36" rx="2" fill="#888780" opacity=".5"/><rect x="4" y="28" width="12" height="8" rx="2" fill="#0F6E56"/><line x1="16" y1="32" x2="34" y2="36" stroke="#888780" stroke-width="1.5" stroke-dasharray="3 2"/><rect x="46" y="46" width="22" height="5" rx="2" fill="#1D9E75" opacity=".6"/><rect x="52" y="51" width="10" height="10" rx="2" fill="#0F6E56"/><ellipse cx="52" cy="38" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="52" cy="26" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="46" y1="36" x2="36" y2="34" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="45" y1="40" x2="35" y2="38" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">背中中部・僧帽筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">ローイングマシン（ケーブルロー）</div><div class="ex-note2">ケーブルを胸元に引き寄せる。肩甲骨を寄せる感覚で引く。前後に体を揺らさない。</div><div class="ex-nums"><span class="ex-w2">35 kg</span><span class="ex-s2">3 × 12回</span></div></div>
+          </div>
+          <div class="ex-card last">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="4" width="60" height="4" rx="2" fill="#888780" opacity=".5"/><rect x="34" y="8" width="12" height="4" rx="2" fill="#0F6E56"/><line x1="40" y1="12" x2="40" y2="22" stroke="#888780" stroke-width="2"/><rect x="30" y="20" width="20" height="4" rx="2" fill="#0F6E56"/><ellipse cx="40" cy="36" rx="6" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="23" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="36" y1="52" x2="34" y2="62" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round"/><line x1="44" y1="52" x2="46" y2="62" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round"/><line x1="35" y1="34" x2="32" y2="46" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/><line x1="45" y1="34" x2="48" y2="46" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/><rect x="26" y="44" width="28" height="4" rx="2" fill="#0F6E56"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">上腕三頭筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">トライセップスプッシュダウン</div><div class="ex-note2">ケーブルのバーを真下に押し下げる。肘を脇に固定し腕だけを動かす。ゆっくり戻す。</div><div class="ex-nums"><span class="ex-w2">20 kg</span><span class="ex-s2">3 × 15回</span></div></div>
+          </div>
+          <div class="cardio-block">
+            <div style="font-size:12px;font-weight:600;color:var(--teal-dk);margin-bottom:6px;">有酸素 — ウエイト後20分</div>
+            <div class="cardio-row"><span>トレッドミル傾斜歩き</span><span>傾斜5% / 速度5km/h</span></div>
+            <div class="cardio-row"><span>または自転車エルゴ</span><span>負荷3〜4 / 60rpm</span></div>
+          </div>
+        </div>
+        <div class="rest-tip">セット間休憩 <strong>60〜90秒</strong>。最後の2〜3回がきつい重量が正解。</div>
+      </div>
+
+      <!-- DAY B -->
+      <div id="day-B" class="day-plan" style="display:none">
+        <div class="card">
+          <div class="card-title">Day B — 下半身＋体幹マシン</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">所要時間 約50分 ／ 消費 約280 kcal ／ <strong>初心者マシンのみ</strong></div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="30" width="72" height="6" rx="2" fill="#888780" opacity=".5"/><rect x="4" y="8" width="6" height="56" rx="2" fill="#888780" opacity=".4"/><rect x="12" y="16" width="14" height="20" rx="3" fill="#0F6E56"/><rect x="28" y="36" width="34" height="8" rx="3" fill="#1D9E75" opacity=".5"/><ellipse cx="55" cy="28" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="65" cy="22" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="50" y1="36" x2="32" y2="28" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><line x1="52" y1="36" x2="34" y2="22" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><text x="40" y="62" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">大腿四頭筋・臀部</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">レッグプレスマシン</div><div class="ex-note2">シートに座り足でプレートを押す。膝がつま先より前に出ないよう注意。深めに曲げて押す。</div><div class="ex-nums"><span class="ex-w2">60 kg</span><span class="ex-s2">4 × 12回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="28" width="60" height="8" rx="3" fill="#1D9E75" opacity=".5"/><rect x="14" y="36" width="10" height="14" rx="2" fill="#0F6E56" opacity=".6"/><rect x="56" y="36" width="10" height="14" rx="2" fill="#0F6E56" opacity=".6"/><ellipse cx="40" cy="24" rx="16" ry="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="22" cy="24" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="48" y1="28" x2="54" y2="42" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><line x1="54" y1="42" x2="50" y2="52" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><ellipse cx="50" cy="52" rx="6" ry="3" fill="#0F6E56"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">ハムストリング</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">レッグカールマシン</div><div class="ex-note2">うつ伏せでかかとをお尻に向けて曲げる。ゆっくり下ろすことで効果倍増。膝を傷めないよう急激な動きは避ける。</div><div class="ex-nums"><span class="ex-w2">25 kg</span><span class="ex-s2">3 × 12回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="20" y="28" width="40" height="7" rx="3" fill="#1D9E75" opacity=".6"/><rect x="22" y="35" width="8" height="20" rx="2" fill="#0F6E56" opacity=".6"/><rect x="48" y="35" width="8" height="20" rx="2" fill="#0F6E56" opacity=".6"/><rect x="56" y="18" width="6" height="18" rx="3" fill="#1D9E75" opacity=".6"/><ellipse cx="40" cy="22" rx="8" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="10" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="44" y1="35" x2="60" y2="44" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><ellipse cx="62" cy="46" rx="5" ry="3" fill="#0F6E56"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">大腿四頭筋</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">レッグエクステンションマシン</div><div class="ex-note2">座った状態で足を前に伸ばす。完全に伸ばしきらず少し手前で止めると膝への負担が減る。</div><div class="ex-nums"><span class="ex-w2">25 kg</span><span class="ex-s2">3 × 15回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="22" y="34" width="36" height="7" rx="3" fill="#1D9E75" opacity=".6"/><rect x="34" y="41" width="12" height="14" rx="2" fill="#0F6E56" opacity=".6"/><ellipse cx="40" cy="26" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="14" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><rect x="14" y="36" width="10" height="5" rx="2" fill="#0F6E56"/><rect x="56" y="36" width="10" height="5" rx="2" fill="#0F6E56"/><line x1="36" y1="34" x2="22" y2="42" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><line x1="44" y1="34" x2="58" y2="42" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><text x="10" y="45" font-size="9" fill="#1D9E75">←</text><text x="60" y="45" font-size="9" fill="#1D9E75">→</text><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">中臀筋・股関節</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">ヒップアブダクションマシン</div><div class="ex-note2">座って太ももを外に開く。腰を固定しお尻の横の筋肉を意識して開く。ゆっくり戻す。</div><div class="ex-nums"><span class="ex-w2">30 kg</span><span class="ex-s2">3 × 15回</span></div></div>
+          </div>
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg">
+              <!-- mat -->
+              <rect x="6" y="48" width="68" height="5" rx="2" fill="#1D9E75" opacity=".25"/>
+              <!-- person lying on back, knees bent -->
+              <ellipse cx="52" cy="42" rx="14" ry="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+              <circle cx="66" cy="38" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/>
+              <!-- knees bent up -->
+              <line x1="46" y1="47" x2="38" y2="42" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+              <line x1="38" y1="42" x2="34" y2="48" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+              <line x1="50" y1="47" x2="44" y2="42" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+              <line x1="44" y1="42" x2="42" y2="48" stroke="#1D9E75" stroke-width="3.5" stroke-linecap="round"/>
+              <!-- hands behind head, curling up -->
+              <line x1="58" y1="38" x2="62" y2="30" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/>
+              <line x1="64" y1="38" x2="60" y2="30" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/>
+              <!-- curl arrow -->
+              <text x="18" y="38" font-size="10" fill="#1D9E75">↑</text>
+              <text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">腹直筋</text>
+            </svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">床クランチ（マット使用）</div>
+              <div class="ex-note2">仰向けに寝て膝を90度に立て、手を頭の後ろに添える。息を吐きながら肩甲骨が浮く程度まで上体を起こす。腰は床につけたまま。反動なし。</div>
+              <div class="ex-nums"><span class="ex-w2">自重</span><span class="ex-s2">3 × 20回</span></div>
+            </div>
+          </div>
+          <div class="ex-card last">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="50" width="72" height="4" rx="2" fill="#888780" opacity=".4"/><rect x="14" y="36" width="48" height="7" rx="3" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><rect x="14" y="43" width="12" height="5" rx="2" fill="#1D9E75" opacity=".6"/><rect x="10" y="47" width="8" height="3" rx="1" fill="#1D9E75"/><ellipse cx="60" cy="38" rx="7" ry="5" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="70" cy="34" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="14" y1="34" x2="62" y2="34" stroke="#EF9F27" stroke-width="1" stroke-dasharray="4 3"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">体幹全体</text></svg></div>
+            <div class="ex-info"><div class="ex-name2">プランク（床）</div><div class="ex-note2">前腕と足先だけで体を支え一直線にキープ。腰が落ちないようお腹に力を入れ続ける。マットを使用。</div><div class="ex-nums"><span class="ex-w2">自重</span><span class="ex-s2">3 × 40秒</span></div></div>
+          </div>
+          <div class="cardio-block">
+            <div style="font-size:12px;font-weight:600;color:var(--teal-dk);margin-bottom:6px;">有酸素 — ウエイト後20分</div>
+            <div class="cardio-row"><span>クロストレーナー</span><span>負荷4〜5 / 一定ペース</span></div>
+            <div class="cardio-row"><span>または自転車エルゴ</span><span>負荷3〜4 / 70rpm</span></div>
+          </div>
+        </div>
+        <div class="rest-tip">セット間休憩 <strong>90秒</strong>。下半身は大筋群なので少し長めに。</div>
+      </div>
+
+      <!-- DAY C -->
+      <div id="day-C" class="day-plan" style="display:none">
+        <div class="card">
+          <div class="card-title">Day C — 全身マシン＋有酸素強化</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">所要時間 約55分 ／ 消費 約350 kcal ／ <strong>初心者マシンのみ</strong></div>
+
+          <!-- 1. Leg Press Heavy -->
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="4" y="30" width="72" height="6" rx="2" fill="#888780" opacity=".5"/><rect x="4" y="8" width="6" height="56" rx="2" fill="#888780" opacity=".4"/><rect x="12" y="16" width="14" height="20" rx="3" fill="#0F6E56"/><rect x="28" y="36" width="34" height="8" rx="3" fill="#1D9E75" opacity=".5"/><ellipse cx="55" cy="28" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="65" cy="22" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="50" y1="36" x2="32" y2="28" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><line x1="52" y1="36" x2="34" y2="22" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/><text x="40" y="62" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">大腿四頭筋・臀部</text></svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">レッグプレスマシン（重め）</div>
+              <div class="ex-note2">Day Bより重量を上げて実施。脚の力が一番強い時にこれを持ってくる。膝がつま先より前に出ないよう注意。</div>
+              <div class="ex-nums"><span class="ex-w2">70 kg</span><span class="ex-s2">4 × 10回</span></div>
+            </div>
+          </div>
+
+          <!-- 2. Pec Deck Fly Machine -->
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg">
+              <!-- seat & backrest -->
+              <rect x="30" y="42" width="20" height="6" rx="2" fill="#1D9E75" opacity=".6"/>
+              <rect x="36" y="48" width="8" height="10" rx="2" fill="#0F6E56" opacity=".7"/>
+              <rect x="38" y="14" width="4" height="30" rx="2" fill="#888780" opacity=".5"/>
+              <!-- two arm pads that swing inward -->
+              <rect x="8" y="24" width="18" height="6" rx="3" fill="#0F6E56" opacity=".8"/>
+              <rect x="54" y="24" width="18" height="6" rx="3" fill="#0F6E56" opacity=".8"/>
+              <!-- pivot arms -->
+              <line x1="26" y1="27" x2="36" y2="33" stroke="#888780" stroke-width="2"/>
+              <line x1="54" y1="27" x2="44" y2="33" stroke="#888780" stroke-width="2"/>
+              <!-- person -->
+              <ellipse cx="40" cy="34" rx="6" ry="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+              <circle cx="40" cy="22" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/>
+              <!-- arms pushing pads together -->
+              <line x1="35" y1="32" x2="26" y2="27" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/>
+              <line x1="45" y1="32" x2="54" y2="27" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/>
+              <!-- arrows showing inward motion -->
+              <text x="20" y="23" font-size="8" fill="#1D9E75">→</text>
+              <text x="50" y="23" font-size="8" fill="#1D9E75">←</text>
+              <text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">胸・大胸筋</text>
+            </svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">ペックデックフライマシン</div>
+              <div class="ex-note2">座って両腕のパッドを胸の前で合わせる。腕を広げてから閉じる動き。背もたれに背中を密着させたまま、胸を絞る感覚で閉じる。初心者に最適な胸マシン。</div>
+              <div class="ex-nums"><span class="ex-w2">20 kg</span><span class="ex-s2">3 × 15回</span></div>
+            </div>
+          </div>
+
+          <!-- 3. Lat Pulldown (wide grip) -->
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="10" y="8" width="60" height="4" rx="2" fill="#888780" opacity=".6"/><line x1="40" y1="12" x2="40" y2="20" stroke="#888780" stroke-width="2"/><rect x="18" y="20" width="44" height="4" rx="2" fill="#0F6E56"/><rect x="28" y="48" width="24" height="5" rx="2" fill="#1D9E75" opacity=".6"/><rect x="34" y="53" width="12" height="8" rx="2" fill="#0F6E56"/><ellipse cx="40" cy="40" rx="6" ry="8" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="40" cy="28" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="35" y1="36" x2="22" y2="24" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="45" y1="36" x2="58" y2="24" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">背中・広背筋</text></svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">ラットプルダウン（ワイドグリップ）</div>
+              <div class="ex-note2">Day Aより手幅を広く持ち引く。広背筋の外側まで刺激できる。バーを胸骨に向けて引くイメージ。</div>
+              <div class="ex-nums"><span class="ex-w2">40 kg</span><span class="ex-s2">4 × 12回</span></div>
+            </div>
+          </div>
+
+          <!-- 4. Chest Press Machine -->
+          <div class="ex-card">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg"><rect x="28" y="40" width="24" height="6" rx="2" fill="#1D9E75" opacity=".7"/><rect x="34" y="46" width="12" height="12" rx="2" fill="#0F6E56"/><rect x="52" y="18" width="6" height="28" rx="3" fill="#1D9E75" opacity=".8"/><ellipse cx="42" cy="32" rx="7" ry="9" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/><circle cx="42" cy="20" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/><line x1="36" y1="30" x2="22" y2="26" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><line x1="48" y1="30" x2="62" y2="26" stroke="#1D9E75" stroke-width="3" stroke-linecap="round"/><rect x="16" y="22" width="8" height="4" rx="2" fill="#0F6E56"/><rect x="56" y="22" width="8" height="4" rx="2" fill="#0F6E56"/><rect x="14" y="18" width="4" height="30" rx="2" fill="#888780" opacity=".5"/><rect x="62" y="18" width="4" height="30" rx="2" fill="#888780" opacity=".5"/><text x="40" y="62" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">胸・肩・三頭筋</text></svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">チェストプレスマシン（仕上げ）</div>
+              <div class="ex-note2">Day Aと同じマシン。C日は軽めの重量で回数を増やし、胸全体を追い込む仕上げとして実施。</div>
+              <div class="ex-nums"><span class="ex-w2">25 kg</span><span class="ex-s2">3 × 15回</span></div>
+            </div>
+          </div>
+
+          <!-- 5. Leg Raise -->
+          <div class="ex-card last">
+            <div class="ex-illust"><svg viewBox="0 0 80 64" xmlns="http://www.w3.org/2000/svg">
+              <!-- mat -->
+              <rect x="6" y="56" width="68" height="4" rx="2" fill="#1D9E75" opacity=".25"/>
+              <!-- person lying flat, legs raised -->
+              <ellipse cx="56" cy="50" rx="18" ry="4" fill="#E1F5EE" stroke="#1D9E75" stroke-width="1.5"/>
+              <circle cx="72" cy="46" r="5" fill="#F5C4B3" stroke="#E0A090" stroke-width="1"/>
+              <!-- arms flat by side -->
+              <line x1="58" y1="53" x2="52" y2="57" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round"/>
+              <line x1="62" y1="53" x2="68" y2="57" stroke="#1D9E75" stroke-width="2.5" stroke-linecap="round"/>
+              <!-- legs raised 45deg -->
+              <line x1="40" y1="52" x2="26" y2="38" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/>
+              <line x1="36" y1="52" x2="20" y2="38" stroke="#1D9E75" stroke-width="4" stroke-linecap="round"/>
+              <!-- feet -->
+              <ellipse cx="22" cy="36" rx="5" ry="3" fill="#0F6E56" opacity=".7"/>
+              <!-- arrow up -->
+              <text x="8" y="34" font-size="9" fill="#1D9E75">↑</text>
+              <text x="40" y="63" font-size="7" fill="#0F6E56" text-anchor="middle" font-weight="bold">腹直筋下部・腸腰筋</text>
+            </svg></div>
+            <div class="ex-info">
+              <div class="ex-name2">レッグレイズ（床・マット使用）</div>
+              <div class="ex-note2">仰向けに寝て両足をそろえ、床から45度まで持ち上げてゆっくり下ろす。腰が反らないよう腹部に力を入れたまま。下腹部への効果が高い。</div>
+              <div class="ex-nums"><span class="ex-w2">自重</span><span class="ex-s2">3 × 15回</span></div>
+            </div>
+          </div>
+
+          <div class="cardio-block" style="background:var(--coral-lt)">
+            <div style="font-size:12px;font-weight:600;color:#993C1D;margin-bottom:8px;">HIIT — ウエイト後15分（バイク推奨）</div>
+            <div class="hiit-row"><span class="hiit-phase warm">ウォームアップ</span><span>3分 / 軽いペース</span></div>
+            <div class="hiit-row"><span class="hiit-phase hard">全力20秒</span><span>最大負荷で漕ぐ</span></div>
+            <div class="hiit-row"><span class="hiit-phase rest2">回復40秒</span><span>ゆっくりペース</span></div>
+            <div style="font-size:11px;color:#993C1D;margin:4px 0;">↑ 全力＋回復 を8セット繰り返す</div>
+            <div class="hiit-row"><span class="hiit-phase warm">クールダウン</span><span>2分 / 軽めで終了</span></div>
+          </div>
+        </div>
+        <div class="rest-tip">HIITは週1回のみ。心拍が上がりすぎたら無理せず負荷を下げる。</div>
+      </div>
+
+      <!-- DAY Cardio -->
+      <div id="day-cardio" class="day-plan" style="display:none">
+        <div class="card">
+          <div class="card-title">有酸素デー</div>
+          <div style="font-size:12px;color:var(--text3);margin-bottom:10px;">所要時間 約45分 ／ 消費 約350 kcal</div>
+          <div class="cardio-block" style="margin-bottom:10px;">
+            <div style="font-size:12px;font-weight:600;color:var(--teal-dk);margin-bottom:8px;">推奨メニュー（どれか1つ）</div>
+            <div class="cardio-option"><div class="co-title">A. トレッドミル傾斜歩き 40分</div><div class="co-detail">傾斜 6〜8% ／ 速度 4.5〜5.5 km/h<br>最大心拍数の65〜75%を維持（115〜130 bpm）</div></div>
+            <div class="cardio-option"><div class="co-title">B. バイク＋傾斜歩き 各20分</div><div class="co-detail">バイク：負荷3〜4 ／ 65rpm<br>トレッドミル：傾斜5% ／ 5km/h</div></div>
+            <div class="cardio-option"><div class="co-title">C. クロストレーナー 40分</div><div class="co-detail">負荷4〜6 ／ 一定ペース<br>関節への負担が少ない。膝が気になる日に。</div></div>
+          </div>
+          <div style="background:var(--blue-lt);border-radius:var(--radius-sm);padding:10px 12px;">
+            <div style="font-size:12px;font-weight:600;color:var(--blue-dk);margin-bottom:4px;">目標心拍ゾーン（48歳・脂肪燃焼帯）</div>
+            <div style="font-size:13px;color:var(--blue-dk);">最大心拍数 <strong>172 bpm</strong><br>脂肪燃焼ゾーン <strong>112〜130 bpm</strong>（65〜75%）</div>
+          </div>
+        </div>
+        <div class="rest-tip">ウエイトの翌日でも有酸素はOK。「少し汗をかく」程度が正解。</div>
+      </div>
+
+      <!-- REST -->
+      <div id="day-rest" class="day-plan" style="display:none">
+        <div class="card">
+          <div class="card-title">休息日</div>
+          <div class="guide-item"><div class="guide-num">1</div><div class="guide-text"><strong>積極的休養</strong> — 軽い散歩（30分・国分寺周辺）は回復を促進。激しい運動はNG。</div></div>
+          <div class="guide-item"><div class="guide-num">2</div><div class="guide-text"><strong>タンパク質継続</strong> — 休息日も130g/日を維持。筋肉の合成は運動翌日以降が活発。</div></div>
+          <div class="guide-item"><div class="guide-num">3</div><div class="guide-text"><strong>睡眠最優先</strong> — 22〜23時就寝を目標。成長ホルモンのピークは入眠後2〜3時間。</div></div>
+          <div class="guide-item"><div class="guide-num">4</div><div class="guide-text"><strong>ストレッチ10分</strong> — 股関節・肩甲骨まわりをほぐすと次回のパフォーマンスが上がる。</div></div>
+        </div>
+      </div>
+
+      <div class="card">
+        <div class="card-title">今日のトレーニング記録</div>
+        <div class="workout-logged" id="workout-logged"></div>
+        <div class="log-btns">
+          <button class="btn" onclick="logWorkout('Day A 上半身', 300)">A 上半身 完了</button>
+          <button class="btn" onclick="logWorkout('Day B 下半身', 280)">B 下半身 完了</button>
+          <button class="btn" onclick="logWorkout('Day C 全身', 350)">C 全身 完了</button>
+          <button class="btn" onclick="logWorkout('有酸素 40分', 350)">有酸素 完了</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- PROGRESS -->
+    <div id="screen-progress" class="screen">
+      <div class="card">
+        <div class="card-title">体重を記録</div>
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:12px;">
+          <input type="number" class="weight-num" id="weight-input" step="0.1" min="50" max="200" placeholder="kg">
+          <button class="btn btn-primary" style="width:80px" onclick="logWeight()">記録</button>
+        </div>
+        <div class="weight-chart-wrap">
+          <svg id="wchart" viewBox="0 0 340 120" preserveAspectRatio="none">
+            <line x1="0" y1="95" x2="340" y2="95" stroke="var(--border)" stroke-width="1"/>
+            <line x1="0" y1="60" x2="340" y2="60" stroke="var(--border)" stroke-width="1"/>
+            <line x1="0" y1="25" x2="340" y2="25" stroke="var(--border)" stroke-width="1"/>
+            <text x="4" y="98" font-size="9" fill="var(--text3)">78</text>
+            <text x="4" y="63" font-size="9" fill="var(--text3)">82</text>
+            <text x="4" y="28" font-size="9" fill="var(--text3)">86</text>
+            <line x1="18" y1="72" x2="340" y2="72" stroke="var(--blue)" stroke-width="1" stroke-dasharray="4 3"/>
+            <text x="290" y="69" font-size="9" fill="var(--blue-dk)">目標80</text>
+            <path id="wchart-fill" d="" fill="var(--teal)" fill-opacity="0.08"/>
+            <polyline id="wchart-line" points="" fill="none" stroke="var(--teal)" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"/>
+            <g id="wchart-dots"></g>
+          </svg>
+        </div>
+        <div style="font-size:12px;color:var(--text3);text-align:center;" id="chart-hint">体重を記録するとグラフが表示されます</div>
+      </div>
+      <div class="card">
+        <div class="card-title">目標マイルストーン</div>
+        <div class="goal-milestones">
+          <div class="milestone" style="border:1.5px solid var(--teal)"><div class="ms-kg" style="color:var(--teal)">84.5</div><div class="ms-label">現在</div><div class="ms-badge" style="color:var(--teal-dk)">今ここ</div></div>
+          <div class="milestone"><div class="ms-kg">80</div><div class="ms-label">中間目標</div><div class="ms-badge" style="color:var(--amber-dk)">2ヶ月</div></div>
+          <div class="milestone"><div class="ms-kg">77</div><div class="ms-label">第2目標</div><div class="ms-badge" style="color:var(--amber-dk)">4ヶ月</div></div>
+          <div class="milestone"><div class="ms-kg">75</div><div class="ms-label">最終目標</div><div class="ms-badge" style="color:var(--teal-dk)">6ヶ月</div></div>
+        </div>
+        <div class="progress-bar" style="height:7px;margin-top:4px;"><div class="progress-fill" id="goal-bar" style="width:0%;background:var(--teal)"></div></div>
+        <div style="display:flex;justify-content:space-between;font-size:12px;color:var(--text3);margin-top:4px;">
+          <span>達成率 <strong id="goal-pct">0</strong>%</span>
+          <span>残り <strong id="goal-remain">9.5</strong> kg</span>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">今週のまとめ</div>
+        <div class="row"><span class="row-label">Jexer来館</span><span class="row-val"><span id="prog-jexer">0</span> 回</span></div>
+        <div class="row"><span class="row-label">週間消費カロリー</span><span class="row-val"><span id="prog-burn">0</span> kcal</span></div>
+        <div class="row"><span class="row-label">今日の食事</span><span class="row-val"><span id="prog-kcal">0</span> kcal</span></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--text3);">週3回ジム＋食事管理で月2.5〜3 kg減が目安</div>
+      </div>
+    </div>
+
+  </div><!-- end scroll -->
+
+  <div class="tab-bar">
+    <button class="tab-btn active" onclick="switchTab('dash',this)"><span class="tab-icon">🏠</span><span class="tab-label">ホーム</span></button>
+    <button class="tab-btn" onclick="switchTab('food',this)"><span class="tab-icon">🍽</span><span class="tab-label">食事</span></button>
+    <button class="tab-btn" onclick="switchTab('jexer',this)"><span class="tab-icon">🏋️</span><span class="tab-label">Jexer</span></button>
+    <button class="tab-btn" onclick="switchTab('progress',this)"><span class="tab-label-icon">📈</span><span class="tab-label">進捗</span></button>
+  </div>
+</div>
+
+<script>
+// ===== STATE =====
+const STORE_KEY = 'hide_diet_v3';
+const defaults = { weight:84.5, todayKcal:0, water:0, foods:[], macros:{carb:0,protein:0,fat:0}, weights:[{date:'5/6',w:84.5}], jexerCount:0, weeklyBurn:0, workouts:[], lastDate:'' };
+function load(){ try{ return Object.assign({},defaults,JSON.parse(localStorage.getItem(STORE_KEY)||'{}')); }catch{ return Object.assign({},defaults); } }
+function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
+let state = load();
+const today = new Date().toLocaleDateString('ja-JP');
+if(state.lastDate !== today){ state.todayKcal=0; state.water=0; state.foods=[]; state.macros={carb:0,protein:0,fat:0}; state.jexerCount=0; state.weeklyBurn=0; state.workouts=[]; state.lastDate=today; save(); }
+
+// ===== WORKOUT SCHEDULE =====
+// 確定スケジュール
+// 水=A実施済み（今日はBを表示）、木=B（下半身）、金=C（全身）、土=有酸素
+const WEEK_SCHEDULE = {
+  0: 'rest',    // 日
+  1: 'rest',    // 月
+  2: 'B',       // 水 ← A済みのため今日はBを表示
+  3: 'B',       // 木 ← 下半身
+  4: 'C',       // 金 ← 全身
+  5: 'cardio',  // 土 ← 有酸素
+  6: 'rest',    // 日
+};
+function getTodayPlan(){
+  return WEEK_SCHEDULE[new Date().getDay()] || 'rest';
+}
+const PLAN_NAMES = { A:'Day A — 上半身', B:'Day B — 下半身＋体幹', C:'Day C — 全身＋有酸素強化', cardio:'有酸素デー', rest:'休息日' };
+const PLAN_DAYS  = { 1:'月', 2:'火', 3:'水', 4:'木', 5:'金', 6:'土', 0:'日' };
+
+function buildDaySelector(){
+  const sel = document.getElementById('day-selector');
+  const todayDow = new Date().getDay();
+  const todayPlan = getTodayPlan();
+  // 来週分も含む正しいスケジュール（翌週は通常ローテに戻す）
+  const nextSchedule = {
+    0: 'rest', 1: 'A', 2: 'rest', 3: 'B', 4: 'C', 5: 'cardio', 6: 'rest'
+  };
+  const entries = [];
+  for(let i=0;i<7;i++){
+    const d = (todayDow + i) % 7;
+    let plan;
+    if(i===0) plan = todayPlan;
+    else plan = WEEK_SCHEDULE[d] !== undefined ? WEEK_SCHEDULE[d] : nextSchedule[d] || 'rest';
+    entries.push({dow:d, plan, isToday:i===0});
+  }
+  sel.innerHTML = entries.slice(0,5).map((e)=>{
+    const label = e.isToday ? '今日' : PLAN_DAYS[e.dow];
+    const todayBadge = e.isToday ? '<span class="today-badge">TODAY</span>' : '';
+    const doneBadge = (e.isToday && state.workouts.length>0) ? '<span class="done-badge">完了</span>' : '';
+    const cls = e.isToday ? 'active' : '';
+    return `<button class="day-sel-btn ${cls}" onclick="showDay('${e.plan}',this)">${label}${todayBadge}${doneBadge}<br><span style="font-size:10px">${PLAN_NAMES[e.plan]||e.plan}</span></button>`;
+  }).join('');
+  showDayById(todayPlan);
+}
+
+function showDay(id, btn){
+  document.querySelectorAll('.day-plan').forEach(d=>d.style.display='none');
+  document.querySelectorAll('.day-sel-btn').forEach(b=>b.classList.remove('active'));
+  const el = document.getElementById('day-'+id);
+  if(el) el.style.display='block';
+  if(btn) btn.classList.add('active');
+}
+function showDayById(id){
+  document.querySelectorAll('.day-plan').forEach(d=>d.style.display='none');
+  const el = document.getElementById('day-'+id);
+  if(el) el.style.display='block';
+}
+
+function updateTodayBanner(){
+  const plan = getTodayPlan();
+  const dow = new Date().getDay();
+  const title = document.getElementById('today-plan-title');
+  const body = document.getElementById('today-plan-body');
+  const badge = document.getElementById('today-menu-badge');
+  const msgs = {
+    A: ['今日のメニュー — Day A 上半身', 'チェストプレス・ショルダープレス・ラットプルダウン・ローイング・トライセップスの5種目。有酸素20分も忘れずに。', 'Day A 上半身'],
+    B: ['今日のメニュー — Day B 下半身＋体幹', 'レッグプレス・レッグカール・レッグエクステンション・ヒップアブダクション・床クランチ・プランク。有酸素20分も。', 'Day B 下半身'],
+    C: ['今日のメニュー — Day C 全身', 'レッグプレス重め・ペックデック・ラットプルダウン・チェストプレス仕上げ・レッグレイズ。HIIT15分も。', 'Day C 全身'],
+    cardio: ['今日は有酸素デー', 'トレッドミル傾斜歩き・バイク・クロストレーナーのどれか40分。心拍112〜130 bpmを維持。', '有酸素デー'],
+    rest: ['今日は休息日', '軽い散歩とストレッチで回復を促進。タンパク質130g/日は維持してください。', '休息日'],
+  };
+  const m = msgs[plan] || msgs.rest;
+  title.textContent = m[0];
+  body.textContent = m[1];
+  if(badge) badge.textContent = '今日: ' + m[2];
+}
+
+// ===== FOOD DB =====
+const foodDB = {
+  salad_chicken:{name:'サラダチキン（プレーン）',kcal:113,carb:0,protein:25,fat:3},
+  boiled_egg2:{name:'ゆで卵2個パック',kcal:144,carb:0,protein:12,fat:10},
+  greek_yogurt:{name:'ギリシャヨーグルト無糖',kcal:70,carb:7,protein:10,fat:0},
+  tofu_bar:{name:'豆腐バー',kcal:90,carb:2,protein:10,fat:5},
+  yakitori_shio:{name:'焼き鳥（塩）2本',kcal:130,carb:1,protein:18,fat:6},
+  protein_bar:{name:'プロテインバー',kcal:190,carb:18,protein:15,fat:7},
+  almond:{name:'アーモンド小袋',kcal:160,carb:5,protein:6,fat:14},
+  chicken_onigiri_set:{name:'サラダチキン+鮭おにぎり',kcal:305,carb:38,protein:32,fat:5},
+  zaru_soba:{name:'ざるそば',kcal:310,carb:58,protein:14,fat:2},
+  cold_shabu_salad:{name:'冷しゃぶサラダ',kcal:160,carb:8,protein:14,fat:8},
+  chicken_salad_egg:{name:'鶏むねサラダ+ゆで卵',kcal:220,carb:6,protein:28,fat:9},
+  oden:{name:'おでん3種',kcal:130,carb:12,protein:10,fat:4},
+  seaweed_tofu:{name:'海藻サラダ+豆腐',kcal:105,carb:6,protein:9,fat:5},
+  egg_chicken_night:{name:'卵+サラダチキン（夜）',kcal:205,carb:1,protein:32,fat:9},
+  black_coffee:{name:'ブラックコーヒー',kcal:5,carb:0,protein:0,fat:0},
+  mineral_water:{name:'ミネラルウォーター',kcal:0,carb:0,protein:0,fat:0},
+  // meal plan sets
+  br1:{name:'【朝】サラダチキン+ヨーグルト',kcal:183,carb:7,protein:35,fat:3},
+  br2:{name:'【朝】ゆで卵2個+納豆巻き',kcal:374,carb:42,protein:20,fat:13},
+  br3:{name:'【朝】ヨーグルト+プロテインバー',kcal:260,carb:25,protein:25,fat:7},
+  lu1:{name:'【昼】サラダチキン+ざるそば',kcal:423,carb:58,protein:39,fat:5},
+  lu2:{name:'【昼】冷しゃぶサラダ+鮭おにぎり',kcal:352,carb:46,protein:19,fat:10},
+  lu3:{name:'【昼】鶏むねサラダ+ゆで卵+豆腐バー',kcal:310,carb:8,protein:38,fat:14},
+  di1:{name:'【夕】焼き鳥3本+海藻サラダ+豆腐バー',kcal:325,carb:9,protein:37,fat:14},
+  di2:{name:'【夕】おでん+サラダチキン',kcal:243,carb:12,protein:35,fat:7},
+  di3:{name:'【夕】ゆで卵2個+チキン+冷しゃぶサラダ',kcal:417,carb:8,protein:51,fat:18},
+  sn1:{name:'【間食】プロテインバー',kcal:190,carb:18,protein:15,fat:7},
+  sn2:{name:'【間食】アーモンド小袋',kcal:160,carb:5,protein:6,fat:14},
+};
+
+// ===== ACTIONS =====
+function addFood(){
+  const sel = document.getElementById('food-select');
+  const key = sel.value; if(!key) return;
+  const f = foodDB[key]; if(!f) return;
+  addFoodEntry({...f, key});
+  sel.value='';
+}
+function addManual(){
+  const name = document.getElementById('manual-name').value.trim() || '手入力食品';
+  const kcal = parseInt(document.getElementById('manual-kcal').value) || 0;
+  const protein = parseInt(document.getElementById('manual-protein').value) || 0;
+  if(kcal===0 && protein===0){ alert('カロリーを入力してください'); return; }
+  addFoodEntry({name, kcal, carb:0, protein, fat:0, key:'manual_'+Date.now()});
+  document.getElementById('manual-name').value='';
+  document.getElementById('manual-kcal').value='';
+  document.getElementById('manual-protein').value='';
+}
+function addFoodEntry(f){
+  const newTotal = state.todayKcal + f.kcal;
+  if(newTotal > 1850 && f.kcal > 0){ if(!confirm(`追加すると合計 ${newTotal} kcal になり目標を超えます。追加しますか？`)) return; }
+  state.foods.push(f);
+  state.todayKcal += f.kcal;
+  state.macros.carb += (f.carb||0);
+  state.macros.protein += (f.protein||0);
+  state.macros.fat += (f.fat||0);
+  save(); updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+}
+function removeFood(idx){
+  const f = state.foods[idx];
+  state.todayKcal = Math.max(0, state.todayKcal - f.kcal);
+  state.macros.carb = Math.max(0, state.macros.carb - (f.carb||0));
+  state.macros.protein = Math.max(0, state.macros.protein - (f.protein||0));
+  state.macros.fat = Math.max(0, state.macros.fat - (f.fat||0));
+  state.foods.splice(idx,1);
+  save(); updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+}
+function selectMeal(el, key){
+  const f = foodDB[key]; if(!f) return;
+  if(el.classList.contains('selected')){
+    el.classList.remove('selected');
+    const idx = state.foods.findIndex(x=>x.key===key);
+    if(idx>=0){
+      const r=state.foods[idx];
+      state.todayKcal=Math.max(0,state.todayKcal-r.kcal);
+      state.macros.carb=Math.max(0,state.macros.carb-(r.carb||0));
+      state.macros.protein=Math.max(0,state.macros.protein-(r.protein||0));
+      state.macros.fat=Math.max(0,state.macros.fat-(r.fat||0));
+      state.foods.splice(idx,1);
+    }
+  } else {
+    const newTotal = state.todayKcal + f.kcal;
+    if(newTotal > 1850){ if(!confirm(`追加すると合計 ${newTotal} kcal になります。追加しますか？`)) return; }
+    el.classList.add('selected');
+    state.foods.push({...f,key});
+    state.todayKcal+=f.kcal; state.macros.carb+=(f.carb||0); state.macros.protein+=(f.protein||0); state.macros.fat+=(f.fat||0);
+  }
+  save(); updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+}
+function addWater(ml){ state.water=Math.min(state.water+ml,3000); save(); updateWater(); }
+function logWorkout(name, kcal){
+  if(state.workouts.includes(name)) return;
+  state.workouts.push(name); state.jexerCount++; state.weeklyBurn+=kcal; save();
+  const el=document.getElementById('workout-logged'); el.style.display='block';
+  el.textContent='記録済み: '+state.workouts.join(' / ');
+  updateProgress();
+}
+function logWeight(){
+  const val=parseFloat(document.getElementById('weight-input').value);
+  if(isNaN(val)||val<50||val>200){ alert('正しい体重を入力してください'); return; }
+  state.weight=val;
+  const label=new Date().toLocaleDateString('ja-JP',{month:'numeric',day:'numeric'});
+  const ex=state.weights.findIndex(w=>w.date===label);
+  if(ex>=0) state.weights[ex].w=val; else state.weights.push({date:label,w:val});
+  if(state.weights.length>30) state.weights.shift();
+  document.getElementById('weight-input').value='';
+  save(); updateDash(); updateProgress();
+}
+function showMealTab(id,btn){
+  document.querySelectorAll('.meal-tab').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.meal-tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('mtab-'+id).style.display='block';
+  btn.classList.add('active');
+}
+function switchTab(id,btn){
+  document.querySelectorAll('.screen').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('screen-'+id).classList.add('active');
+  btn.classList.add('active');
+  document.getElementById('scroll-area').scrollTop=0;
+  if(id==='progress') updateProgress();
+}
+
+// ===== UI UPDATES =====
+function calcBMR(w){ return Math.round(10*w + 6.25*171 - 5*48 + 5); }
+function updateDash(){
+  const w = state.weight;
+  document.getElementById('dash-weight').textContent=w.toFixed(1);
+  document.getElementById('dash-kcal').textContent=state.todayKcal.toLocaleString();
+  const rem = 1850 - state.todayKcal;
+  document.getElementById('dash-remain').textContent = rem>0 ? `残り ${rem.toLocaleString()} kcal` : `超過 ${Math.abs(rem).toLocaleString()} kcal`;
+  const pct = Math.min(100, Math.round(state.todayKcal/1850*100));
+  document.getElementById('dash-kbar').style.width=pct+'%';
+  document.getElementById('dash-kbar').style.background=pct>100?'var(--coral)':'var(--teal)';
+  document.getElementById('dash-kpct').textContent=pct+'%';
+  const bmi=w/(1.71*1.71);
+  document.getElementById('bmi-val').textContent=bmi.toFixed(1);
+  const bmiPct=Math.min(95,Math.max(5,(bmi-16)/24*100));
+  document.getElementById('bmi-marker').style.left=bmiPct+'%';
+  document.getElementById('dash-remain-kg').textContent=Math.max(0,w-75).toFixed(1);
+  const bmr=calcBMR(w);
+  document.getElementById('dash-bmr').textContent=bmr.toLocaleString()+' kcal';
+  document.getElementById('dash-tdee').textContent=Math.round(bmr*1.35).toLocaleString()+' kcal';
+  const tips=['今日は上半身完了。次回は下半身Day Bを実施予定。コンビニでサラダチキン+そばをしっかり摂りましょう。','Jexer後30分以内にプロテインバーまたはサラダチキンを摂取すると回復が促進されます。','水2.5Lは代謝と脂肪燃焼を助けます。','夜は炭水化物を控え焼き鳥（塩）+海藻サラダが最適。','週3回のJexer継続で基礎代謝が上がり体質が変わります。'];
+  document.getElementById('dash-tip').textContent=tips[new Date().getDay()%tips.length];
+}
+function updateFood(){
+  const m=state.macros;
+  document.getElementById('carb-g').textContent=m.carb;
+  document.getElementById('prot-g').textContent=m.protein;
+  document.getElementById('fat-g').textContent=m.fat;
+  document.getElementById('carb-bar').style.width=Math.min(100,Math.round(m.carb/185*100))+'%';
+  document.getElementById('prot-bar').style.width=Math.min(100,Math.round(m.protein/130*100))+'%';
+  document.getElementById('fat-bar').style.width=Math.min(100,Math.round(m.fat/50*100))+'%';
+  document.getElementById('food-total-kcal').textContent=state.todayKcal.toLocaleString();
+  document.getElementById('food-remain').textContent=Math.max(0,1850-state.todayKcal).toLocaleString();
+  const list=document.getElementById('food-list');
+  if(!state.foods.length){ list.innerHTML='<li class="empty-state">まだ記録がありません</li>'; return; }
+  const colors=['#1D9E75','#EF9F27','#D85A30','#378ADD','#854F0B','#185FA5'];
+  list.innerHTML=state.foods.map((f,i)=>`<li class="food-item"><div class="food-dot" style="background:${colors[i%colors.length]}"></div><span class="food-name">${f.name}</span><span class="food-kcal">${f.kcal} kcal</span><span class="food-del" onclick="removeFood(${i})">×</span></li>`).join('');
+}
+function updateWater(){
+  const pct=Math.min(100,Math.round(state.water/2500*100));
+  document.getElementById('water-bar').style.width=pct+'%';
+  document.getElementById('water-val').textContent=(state.water/1000).toFixed(2)+'L';
+}
+function updateProgress(){
+  document.getElementById('prog-jexer').textContent=state.jexerCount;
+  document.getElementById('prog-burn').textContent=state.weeklyBurn.toLocaleString();
+  document.getElementById('prog-kcal').textContent=state.todayKcal.toLocaleString();
+  const lost=84.5-state.weight;
+  const pct=Math.max(0,Math.min(100,Math.round(lost/9.5*100)));
+  document.getElementById('goal-bar').style.width=pct+'%';
+  document.getElementById('goal-pct').textContent=pct;
+  document.getElementById('goal-remain').textContent=Math.max(0,state.weight-75).toFixed(1);
+  renderWeightChart();
+}
+function renderWeightChart(){
+  const data=state.weights; if(!data.length) return;
+  document.getElementById('chart-hint').style.display='none';
+  const n=Math.min(data.length,12);
+  const slice=data.slice(-n);
+  const minW=76,maxW=88,W=310,H=90,ox=22,oy=8;
+  const xs=n>1?W/(n-1):0;
+  const ys=H/(maxW-minW);
+  const pts=slice.map((d,i)=>[Math.round(ox+i*xs),Math.round(oy+(maxW-d.w)*ys)]);
+  const ptStr=pts.map(p=>p.join(',')).join(' ');
+  document.getElementById('wchart-line').setAttribute('points',ptStr);
+  const last=pts[pts.length-1];
+  document.getElementById('wchart-fill').setAttribute('d',`M${pts[0].join(',')} L${ptStr} L${last[0]},${oy+H} L${pts[0][0]},${oy+H} Z`);
+  document.getElementById('wchart-dots').innerHTML=pts.map((p,i)=>`<circle cx="${p[0]}" cy="${p[1]}" r="3.5" fill="var(--teal)"/><text x="${p[0]}" y="${p[1]-7}" font-size="8" fill="var(--teal-dk)" text-anchor="middle">${slice[i].w}</text>`).join('');
+}
+function updateCvsBanner(){
+  const rem=Math.max(0,1850-state.todayKcal);
+  const protRem=Math.max(0,130-state.macros.protein);
+  const h=new Date().getHours();
+  let title,body;
+  if(h<10){title='朝食のおすすめ';body=`タンパク質があと${protRem}g必要。サラダチキン+ヨーグルトで一気に確保。残り${rem} kcal。`;}
+  else if(h<14){title='昼食のおすすめ';body=protRem>60?`タンパク質あと${protRem}g。サラダチキン+ざるそばで補給。残り${rem} kcal。`:`昼は炭水化物を適度に。ざるそばか鮭おにぎり+サラダが最適。残り${rem} kcal。`;}
+  else if(h<19){title='Jexer前後の補給';body='今日はDay B（下半身）。プロテインバーかサラダチキンで運動前後を補給。水も忘れずに。';}
+  else{title='夕食のおすすめ';body=`残り${rem} kcal。夜は炭水化物を控え焼き鳥（塩）+海藻サラダで。タンパク質残り${protRem}gを確保してください。`;}
+  document.getElementById('cvs-banner-title').textContent=title;
+  document.getElementById('cvs-banner-body').textContent=body;
+}
+
+// ===== INIT =====
+const dateStr=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
+document.getElementById('top-date').textContent=dateStr+' — Jexer国分寺';
+updateDash(); updateFood(); updateWater(); updateProgress(); updateCvsBanner();
+buildDaySelector(); updateTodayBanner();
+if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
+</script>
+</body>
+</html>
