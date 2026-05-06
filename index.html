@@ -705,16 +705,16 @@ const today = new Date().toLocaleDateString('ja-JP');
 if(state.lastDate !== today){ state.todayKcal=0; state.water=0; state.foods=[]; state.macros={carb:0,protein:0,fat:0}; state.jexerCount=0; state.weeklyBurn=0; state.workouts=[]; state.lastDate=today; save(); }
 
 // ===== WORKOUT SCHEDULE =====
-// 確定スケジュール（Hideさんの今週の実績を反映）
-// 水=A済み、木=B（下半身）、金=C（全身）、土=有酸素、日/月/火=休息
+// 確定スケジュール
+// 水=A実施済み（今日はBを表示）、木=B（下半身）、金=C（全身）、土=有酸素
 const WEEK_SCHEDULE = {
   0: 'rest',    // 日
   1: 'rest',    // 月
-  2: 'A',       // 水 ← 今週は実施済み
+  2: 'rest',    // 水 ← 上半身（A）完了済み、今日は休息
   3: 'B',       // 木 ← 下半身
   4: 'C',       // 金 ← 全身
   5: 'cardio',  // 土 ← 有酸素
-  6: 'rest',    // 日（翌週）
+  6: 'rest',    // 日
 };
 function getTodayPlan(){
   return WEEK_SCHEDULE[new Date().getDay()] || 'rest';
@@ -726,21 +726,24 @@ function buildDaySelector(){
   const sel = document.getElementById('day-selector');
   const todayDow = new Date().getDay();
   const todayPlan = getTodayPlan();
+  // 来週分も含む正しいスケジュール（翌週は通常ローテに戻す）
+  const nextSchedule = {
+    0: 'rest', 1: 'A', 2: 'rest', 3: 'B', 4: 'C', 5: 'cardio', 6: 'rest'
+  };
   const entries = [];
   for(let i=0;i<7;i++){
     const d = (todayDow + i) % 7;
-    const plan = (i===0) ? todayPlan : (WEEK_SCHEDULE[d] || 'rest');
+    let plan;
+    if(i===0) plan = todayPlan;
+    else plan = WEEK_SCHEDULE[d] !== undefined ? WEEK_SCHEDULE[d] : nextSchedule[d] || 'rest';
     entries.push({dow:d, plan, isToday:i===0});
   }
   sel.innerHTML = entries.slice(0,5).map((e)=>{
     const label = e.isToday ? '今日' : PLAN_DAYS[e.dow];
     const todayBadge = e.isToday ? '<span class="today-badge">TODAY</span>' : '';
     const doneBadge = (e.isToday && state.workouts.length>0) ? '<span class="done-badge">完了</span>' : '';
-    // Mark Wed (A) as done this week
-    const adoneBadge = (!e.isToday && e.dow===3 && todayDow<=3) ? '' :
-                       (!e.isToday && e.plan==='A') ? '<span class="done-badge">済</span>' : '';
     const cls = e.isToday ? 'active' : '';
-    return `<button class="day-sel-btn ${cls}" onclick="showDay('${e.plan}',this)">${label}${todayBadge}${doneBadge}${adoneBadge}<br><span style="font-size:10px">${PLAN_NAMES[e.plan]||e.plan}</span></button>`;
+    return `<button class="day-sel-btn ${cls}" onclick="showDay('${e.plan}',this)">${label}${todayBadge}${doneBadge}<br><span style="font-size:10px">${PLAN_NAMES[e.plan]||e.plan}</span></button>`;
   }).join('');
   showDayById(todayPlan);
 }
