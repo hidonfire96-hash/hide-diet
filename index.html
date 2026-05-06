@@ -710,11 +710,11 @@ if(state.lastDate !== today){ state.todayKcal=0; state.water=0; state.foods=[]; 
 const WEEK_SCHEDULE = {
   0: 'rest',    // 日
   1: 'rest',    // 月
-  2: 'rest',    // 水 ← 上半身（A）完了済み、今日は休息
-  3: 'B',       // 木 ← 下半身
-  4: 'C',       // 金 ← 全身
-  5: 'cardio',  // 土 ← 有酸素
-  6: 'rest',    // 日
+  2: 'rest',    // 火
+  3: 'rest',    // 水 ← 上半身完了済み、休息
+  4: 'B',       // 木 ← 下半身
+  5: 'C',       // 金 ← 全身
+  6: 'cardio',  // 土 ← 有酸素
 };
 function getTodayPlan(){
   return WEEK_SCHEDULE[new Date().getDay()] || 'rest';
