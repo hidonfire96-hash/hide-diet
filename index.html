@@ -309,8 +309,18 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 
       <!-- LOG TAB -->
       <div id="mtab-log" class="meal-tab" style="display:none">
+        <!-- 日付セレクター -->
+        <div class="card" style="margin-bottom:8px;">
+          <div class="card-title">記録する日付</div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn" onclick="changeViewDay(-1)" style="padding:6px 12px;">◀</button>
+            <div style="flex:1;text-align:center;font-size:15px;font-weight:600;color:var(--text)" id="viewing-date-label">今日</div>
+            <button class="btn" onclick="changeViewDay(1)" id="next-day-btn" style="padding:6px 12px;">▶</button>
+          </div>
+          <div style="text-align:center;margin-top:6px;font-size:12px;color:var(--text3)" id="viewing-date-sub"></div>
+        </div>
         <div class="card">
-          <div class="card-title">食事ログ</div>
+          <div class="card-title" id="food-log-title">食事ログ</div>
           <ul class="food-list" id="food-list"><li class="empty-state">まだ記録がありません</li></ul>
           <div style="margin-top:10px;">
             <select class="food-select" id="food-select">
@@ -697,55 +707,84 @@ html,body{height:100%;overflow:hidden;background:var(--bg);font-family:-apple-sy
 <script>
 // ===== STATE =====
 const STORE_KEY = 'hide_diet_v3';
+const DAY_KEY = 'hide_diet_days'; // 日付別データ
+
+// 既存データ読み込み（消さない）
 const defaults = { weight:84.5, todayKcal:0, water:0, foods:[], macros:{carb:0,protein:0,fat:0}, weights:[{date:'5/6',w:84.5}], jexerCount:0, weeklyBurn:0, workouts:[], lastDate:'' };
 function load(){ try{ return Object.assign({},defaults,JSON.parse(localStorage.getItem(STORE_KEY)||'{}')); }catch{ return Object.assign({},defaults); } }
 function save(){ localStorage.setItem(STORE_KEY, JSON.stringify(state)); }
 let state = load();
-const today = new Date().toLocaleDateString('ja-JP');
-if(state.lastDate !== today){ state.todayKcal=0; state.water=0; state.foods=[]; state.macros={carb:0,protein:0,fat:0}; state.jexerCount=0; state.weeklyBurn=0; state.workouts=[]; state.lastDate=today; save(); }
+
+// 日付別データベース
+function loadDays(){ try{ return JSON.parse(localStorage.getItem(DAY_KEY)||'{}'); }catch{ return {}; } }
+function saveDays(){ localStorage.setItem(DAY_KEY, JSON.stringify(dayDB)); }
+let dayDB = loadDays();
+
+// 日付キー（YYYY-MM-DD形式）
+function dateKey(d){ const dt=d||new Date(); return dt.toISOString().slice(0,10); }
+function dateLabel(key){ const [y,m,d]=key.split('-'); return `${parseInt(m)}/${parseInt(d)}`; }
+
+// 今日のデータ取得/初期化
+const todayKey = dateKey();
+if(!dayDB[todayKey]){
+  // 既存stateから今日分を移行
+  const today_str = new Date().toLocaleDateString('ja-JP');
+  if(state.lastDate === today_str && state.foods.length > 0){
+    dayDB[todayKey] = { foods:state.foods, macros:state.macros, kcal:state.todayKcal, water:state.water, workouts:state.workouts };
+  } else {
+    dayDB[todayKey] = { foods:[], macros:{carb:0,protein:0,fat:0}, kcal:0, water:0, workouts:[] };
+  }
+  saveDays();
+}
+
+// 現在表示中の日付（デフォルトは今日）
+let viewingKey = todayKey;
+function isViewingToday(){ return viewingKey === todayKey; }
+function getViewingDay(){ return dayDB[viewingKey] || { foods:[], macros:{carb:0,protein:0,fat:0}, kcal:0, water:0, workouts:[] }; }
+function saveViewingDay(day){ dayDB[viewingKey]=day; saveDays();
+  // 今日を表示中なら stateも同期
+  if(isViewingToday()){ state.todayKcal=day.kcal; state.macros=day.macros; state.foods=day.foods; state.water=day.water; state.workouts=day.workouts; save(); }
+}
 
 // ===== WORKOUT SCHEDULE =====
 // 確定スケジュール
 // 水=A実施済み（今日はBを表示）、木=B（下半身）、金=C（全身）、土=有酸素
-const WEEK_SCHEDULE = {
-  0: 'rest',    // 日
-  1: 'rest',    // 月
-  2: 'rest',    // 火
-  3: 'rest',    // 水 ← 上半身完了済み、休息
-  4: 'B',       // 木 ← 下半身
-  5: 'C',       // 金 ← 全身
-  6: 'cardio',  // 土 ← 有酸素
-};
-function getTodayPlan(){
-  return WEEK_SCHEDULE[new Date().getDay()] || 'rest';
+// 通常ローテ: 月=A, 水=B, 金=C, 土=cardio
+const NORMAL = { 0:'rest', 1:'A', 2:'rest', 3:'B', 4:'rest', 5:'C', 6:'cardio' };
+
+function getPlanForDate(date) {
+  const dow = date.getDay();
+  const d = new Date(date); d.setHours(0,0,0,0);
+  const wed = new Date('2026-05-06');
+  const mon = new Date('2026-05-11');
+  if (d >= wed && d < mon) {
+    const thisWeek = { 3:'rest', 4:'B', 5:'C', 6:'cardio', 0:'rest' };
+    if (thisWeek[dow] !== undefined) return thisWeek[dow];
+  }
+  return NORMAL[dow] !== undefined ? NORMAL[dow] : 'rest';
 }
+
+function getTodayPlan() { return getPlanForDate(new Date()); }
 const PLAN_NAMES = { A:'Day A — 上半身', B:'Day B — 下半身＋体幹', C:'Day C — 全身＋有酸素強化', cardio:'有酸素デー', rest:'休息日' };
 const PLAN_DAYS  = { 1:'月', 2:'火', 3:'水', 4:'木', 5:'金', 6:'土', 0:'日' };
 
 function buildDaySelector(){
   const sel = document.getElementById('day-selector');
-  const todayDow = new Date().getDay();
-  const todayPlan = getTodayPlan();
-  // 来週分も含む正しいスケジュール（翌週は通常ローテに戻す）
-  const nextSchedule = {
-    0: 'rest', 1: 'A', 2: 'rest', 3: 'B', 4: 'C', 5: 'cardio', 6: 'rest'
-  };
+  const now = new Date();
   const entries = [];
-  for(let i=0;i<7;i++){
-    const d = (todayDow + i) % 7;
-    let plan;
-    if(i===0) plan = todayPlan;
-    else plan = WEEK_SCHEDULE[d] !== undefined ? WEEK_SCHEDULE[d] : nextSchedule[d] || 'rest';
-    entries.push({dow:d, plan, isToday:i===0});
+  for(let i=0;i<5;i++){
+    const d = new Date(now);
+    d.setDate(now.getDate() + i);
+    entries.push({dow:d.getDay(), plan:getPlanForDate(d), isToday:i===0});
   }
-  sel.innerHTML = entries.slice(0,5).map((e)=>{
+  sel.innerHTML = entries.map((e)=>{
     const label = e.isToday ? '今日' : PLAN_DAYS[e.dow];
     const todayBadge = e.isToday ? '<span class="today-badge">TODAY</span>' : '';
     const doneBadge = (e.isToday && state.workouts.length>0) ? '<span class="done-badge">完了</span>' : '';
     const cls = e.isToday ? 'active' : '';
-    return `<button class="day-sel-btn ${cls}" onclick="showDay('${e.plan}',this)">${label}${todayBadge}${doneBadge}<br><span style="font-size:10px">${PLAN_NAMES[e.plan]||e.plan}</span></button>`;
+    return `<button class="day-sel-btn ${cls}" onclick="showDay('${e.plan}',this)">${label}${todayBadge}${doneBadge}<br><span style="font-size:10px">${PLAN_NAMES[e.plan]}</span></button>`;
   }).join('');
-  showDayById(todayPlan);
+  showDayById(getTodayPlan());
 }
 
 function showDay(id, btn){
@@ -813,6 +852,34 @@ const foodDB = {
 };
 
 // ===== ACTIONS =====
+// ===== 日付ナビゲーション =====
+let viewOffset = 0; // 今日=0, 昨日=-1, ...
+
+function changeViewDay(delta){
+  const newOffset = viewOffset + delta;
+  if(newOffset > 0) return; // 未来は不可
+  viewOffset = newOffset;
+  const d = new Date();
+  d.setDate(d.getDate() + viewOffset);
+  viewingKey = dateKey(d);
+  if(!dayDB[viewingKey]) dayDB[viewingKey]={ foods:[], macros:{carb:0,protein:0,fat:0}, kcal:0, water:0, workouts:[] };
+  updateViewingDateLabel();
+  updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+  // 翌日ボタン：今日より未来は不可
+  document.getElementById('next-day-btn').style.opacity = viewOffset===0 ? '0.3' : '1';
+  document.getElementById('next-day-btn').style.pointerEvents = viewOffset===0 ? 'none' : 'auto';
+}
+
+function updateViewingDateLabel(){
+  const el = document.getElementById('viewing-date-label');
+  const sub = document.getElementById('viewing-date-sub');
+  const title = document.getElementById('food-log-title');
+  if(!el) return;
+  if(viewOffset===0){ el.textContent='今日'; sub.textContent=dateLabel(viewingKey); title.textContent='食事ログ（今日）'; }
+  else if(viewOffset===-1){ el.textContent='昨日'; sub.textContent=dateLabel(viewingKey); title.textContent='食事ログ（昨日）'; }
+  else { el.textContent=`${Math.abs(viewOffset)}日前`; sub.textContent=dateLabel(viewingKey); title.textContent=`食事ログ（${dateLabel(viewingKey)}）`; }
+}
+
 function addFood(){
   const sel = document.getElementById('food-select');
   const key = sel.value; if(!key) return;
@@ -831,23 +898,27 @@ function addManual(){
   document.getElementById('manual-protein').value='';
 }
 function addFoodEntry(f){
-  const newTotal = state.todayKcal + f.kcal;
-  if(newTotal > 1850 && f.kcal > 0){ if(!confirm(`追加すると合計 ${newTotal} kcal になり目標を超えます。追加しますか？`)) return; }
-  state.foods.push(f);
-  state.todayKcal += f.kcal;
-  state.macros.carb += (f.carb||0);
-  state.macros.protein += (f.protein||0);
-  state.macros.fat += (f.fat||0);
-  save(); updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+  const day = getViewingDay();
+  const newTotal = day.kcal + f.kcal;
+  if(isViewingToday() && newTotal > 1850 && f.kcal > 0){ if(!confirm(`追加すると合計 ${newTotal} kcal になり目標を超えます。追加しますか？`)) return; }
+  day.foods.push(f);
+  day.kcal += f.kcal;
+  day.macros.carb += (f.carb||0);
+  day.macros.protein += (f.protein||0);
+  day.macros.fat += (f.fat||0);
+  saveViewingDay(day);
+  updateFood(); updateDash(); updateProgress(); updateCvsBanner();
 }
 function removeFood(idx){
-  const f = state.foods[idx];
-  state.todayKcal = Math.max(0, state.todayKcal - f.kcal);
-  state.macros.carb = Math.max(0, state.macros.carb - (f.carb||0));
-  state.macros.protein = Math.max(0, state.macros.protein - (f.protein||0));
-  state.macros.fat = Math.max(0, state.macros.fat - (f.fat||0));
-  state.foods.splice(idx,1);
-  save(); updateFood(); updateDash(); updateProgress(); updateCvsBanner();
+  const day = getViewingDay();
+  const f = day.foods[idx];
+  day.kcal = Math.max(0, day.kcal - f.kcal);
+  day.macros.carb = Math.max(0, day.macros.carb - (f.carb||0));
+  day.macros.protein = Math.max(0, day.macros.protein - (f.protein||0));
+  day.macros.fat = Math.max(0, day.macros.fat - (f.fat||0));
+  day.foods.splice(idx,1);
+  saveViewingDay(day);
+  updateFood(); updateDash(); updateProgress(); updateCvsBanner();
 }
 function selectMeal(el, key){
   const f = foodDB[key]; if(!f) return;
@@ -910,7 +981,7 @@ function calcBMR(w){ return Math.round(10*w + 6.25*171 - 5*48 + 5); }
 function updateDash(){
   const w = state.weight;
   document.getElementById('dash-weight').textContent=w.toFixed(1);
-  document.getElementById('dash-kcal').textContent=state.todayKcal.toLocaleString();
+  document.getElementById('dash-kcal').textContent=dayDB[todayKey]?(dayDB[todayKey].kcal||0).toLocaleString():state.todayKcal.toLocaleString();
   const rem = 1850 - state.todayKcal;
   document.getElementById('dash-remain').textContent = rem>0 ? `残り ${rem.toLocaleString()} kcal` : `超過 ${Math.abs(rem).toLocaleString()} kcal`;
   const pct = Math.min(100, Math.round(state.todayKcal/1850*100));
@@ -929,19 +1000,20 @@ function updateDash(){
   document.getElementById('dash-tip').textContent=tips[new Date().getDay()%tips.length];
 }
 function updateFood(){
-  const m=state.macros;
+  const day = getViewingDay();
+  const m = day.macros;
   document.getElementById('carb-g').textContent=m.carb;
   document.getElementById('prot-g').textContent=m.protein;
   document.getElementById('fat-g').textContent=m.fat;
   document.getElementById('carb-bar').style.width=Math.min(100,Math.round(m.carb/185*100))+'%';
   document.getElementById('prot-bar').style.width=Math.min(100,Math.round(m.protein/130*100))+'%';
   document.getElementById('fat-bar').style.width=Math.min(100,Math.round(m.fat/50*100))+'%';
-  document.getElementById('food-total-kcal').textContent=state.todayKcal.toLocaleString();
-  document.getElementById('food-remain').textContent=Math.max(0,1850-state.todayKcal).toLocaleString();
+  document.getElementById('food-total-kcal').textContent=day.kcal.toLocaleString();
+  document.getElementById('food-remain').textContent=Math.max(0,1850-day.kcal).toLocaleString();
   const list=document.getElementById('food-list');
-  if(!state.foods.length){ list.innerHTML='<li class="empty-state">まだ記録がありません</li>'; return; }
+  if(!day.foods.length){ list.innerHTML='<li class="empty-state">まだ記録がありません</li>'; return; }
   const colors=['#1D9E75','#EF9F27','#D85A30','#378ADD','#854F0B','#185FA5'];
-  list.innerHTML=state.foods.map((f,i)=>`<li class="food-item"><div class="food-dot" style="background:${colors[i%colors.length]}"></div><span class="food-name">${f.name}</span><span class="food-kcal">${f.kcal} kcal</span><span class="food-del" onclick="removeFood(${i})">×</span></li>`).join('');
+  list.innerHTML=day.foods.map((f,i)=>`<li class="food-item"><div class="food-dot" style="background:${colors[i%colors.length]}"></div><span class="food-name">${f.name}</span><span class="food-kcal">${f.kcal} kcal</span><span class="food-del" onclick="removeFood(${i})">×</span></li>`).join('');
 }
 function updateWater(){
   const pct=Math.min(100,Math.round(state.water/2500*100));
@@ -991,7 +1063,7 @@ function updateCvsBanner(){
 const dateStr=new Date().toLocaleDateString('ja-JP',{year:'numeric',month:'long',day:'numeric',weekday:'short'});
 document.getElementById('top-date').textContent=dateStr+' — Jexer国分寺';
 updateDash(); updateFood(); updateWater(); updateProgress(); updateCvsBanner();
-buildDaySelector(); updateTodayBanner();
+buildDaySelector(); updateTodayBanner(); updateViewingDateLabel();
 if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js').catch(()=>{});
 </script>
 </body>
