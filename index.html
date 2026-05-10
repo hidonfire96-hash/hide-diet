@@ -747,14 +747,13 @@ function saveViewingDay(day){ dayDB[viewingKey]=day; saveDays();
 }
 
 // ===== WORKOUT SCHEDULE =====
-// 確定スケジュール
-// 水=A実施済み（今日はBを表示）、木=B（下半身）、金=C（全身）、土=有酸素
-// 通常ローテ: 月=A, 水=B, 金=C, 土=cardio
-const NORMAL = { 0:'rest', 1:'A', 2:'rest', 3:'B', 4:'rest', 5:'C', 6:'cardio' };
+// 週4回ローテ: 月=A（上半身）、火=有酸素、水=B（下半身）、金=C（全身）、土=有酸素
+const NORMAL = { 0:'rest', 1:'A', 2:'cardio', 3:'B', 4:'rest', 5:'C', 6:'cardio' };
 
 function getPlanForDate(date) {
   const dow = date.getDay();
   const d = new Date(date); d.setHours(0,0,0,0);
+  // 今週だけの特別スケジュール（5/6水〜5/10日）
   const wed = new Date('2026-05-06');
   const mon = new Date('2026-05-11');
   if (d >= wed && d < mon) {
